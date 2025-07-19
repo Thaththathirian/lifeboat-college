@@ -7,43 +7,37 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Upload, Building, User, MapPin, Phone, Mail, Calendar, Users, GraduationCap, CreditCard } from "lucide-react";
+import { ArrowLeft, Upload, Building, CreditCard, GraduationCap, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const collegeFormSchema = z.object({
-  // Basic Information
-  collegeName: z.string().min(2, "College name must be at least 2 characters"),
-  establishedYear: z.string().min(4, "Please enter a valid year"),
-  address: z.string().min(10, "Please enter complete address"),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  
-  // Management Representative
-  representativeName: z.string().min(2, "Representative name is required"),
+  // Section 1: College Information (Required fields only)
+  collegeName: z.string().min(2, "College name is required"),
+  phone: z.string().min(10, "Phone number is required"),
+  email: z.string().email("Valid email is required"),
+  address: z.string().min(10, "Complete address is required"),
+  establishedYear: z.string().min(4, "Established year is required"),
+  representativeName: z.string().min(2, "Management representative name is required"),
   representativePhone: z.string().min(10, "Representative phone is required"),
-  representativeEmail: z.string().email("Please enter valid representative email"),
+  representativeEmail: z.string().email("Representative email is required"),
   
-  // Academic Information
-  departments: z.string().min(1, "Number of departments is required"),
-  totalStudents: z.string().min(1, "Total number of students is required"),
-  batchesPassedOut: z.string().min(1, "Number of batches passed out is required"),
-  passPercentage: z.string().min(1, "Pass percentage is required"),
-  
-  // Infrastructure & Facilities
-  infrastructureDetails: z.string().min(50, "Please provide detailed infrastructure information"),
-  feeConcession: z.string().min(1, "Fee concession details are required"),
-  
-  // Coordinator Information
+  // Section 2: Academic & Financial Details (Required fields only)
   coordinatorName: z.string().min(2, "Coordinator name is required"),
   coordinatorPhone: z.string().min(10, "Coordinator phone is required"),
-  coordinatorEmail: z.string().email("Please enter valid coordinator email"),
+  coordinatorEmail: z.string().email("Coordinator email is required"),
   coordinatorDesignation: z.string().min(2, "Coordinator designation is required"),
-  
-  // Bank Details
+  feeConcession: z.string().min(10, "Fee concession details are required"),
   bankName: z.string().min(2, "Bank name is required"),
-  accountNumber: z.string().min(8, "Account number must be at least 8 digits"),
+  accountNumber: z.string().min(8, "Account number is required"),
   confirmAccountNumber: z.string().min(8, "Please confirm account number"),
   ifscCode: z.string().min(11, "IFSC code must be 11 characters").max(11, "IFSC code must be 11 characters"),
+  
+  // Optional fields for better profiling
+  departments: z.string().optional(),
+  totalStudents: z.string().optional(),
+  batchesPassedOut: z.string().optional(),
+  passPercentage: z.string().optional(),
+  infrastructureDetails: z.string().optional(),
 }).refine((data) => data.accountNumber === data.confirmAccountNumber, {
   message: "Account numbers don't match",
   path: ["confirmAccountNumber"],
@@ -88,12 +82,8 @@ export const CollegeRegistrationForm = ({ onBack }: CollegeRegistrationFormProps
   });
 
   const sections = [
-    { title: "Basic Information", icon: Building },
-    { title: "Management Details", icon: User },
-    { title: "Academic Information", icon: GraduationCap },
-    { title: "Infrastructure & Facilities", icon: Users },
-    { title: "Coordinator Details", icon: User },
-    { title: "Bank Details", icon: CreditCard },
+    { title: "College Information", icon: Building },
+    { title: "Academic & Financial Details", icon: CreditCard },
   ];
 
   const onSubmit = async (data: CollegeFormData) => {
@@ -179,7 +169,7 @@ export const CollegeRegistrationForm = ({ onBack }: CollegeRegistrationFormProps
               </CardHeader>
               <CardContent className="space-y-6">
                 
-                {/* Basic Information */}
+                {/* Section 1: College Information */}
                 {currentSection === 0 && (
                   <div className="grid md:grid-cols-2 gap-6 animate-fade-in">
                     <FormField
@@ -251,17 +241,12 @@ export const CollegeRegistrationForm = ({ onBack }: CollegeRegistrationFormProps
                         </FormItem>
                       )}
                     />
-                  </div>
-                )}
 
-                {/* Management Representative */}
-                {currentSection === 1 && (
-                  <div className="grid md:grid-cols-2 gap-6 animate-fade-in">
                     <FormField
                       control={form.control}
                       name="representativeName"
                       render={({ field }) => (
-                        <FormItem className="md:col-span-2">
+                        <FormItem>
                           <FormLabel>Management Representative Name *</FormLabel>
                           <FormControl>
                             <Input placeholder="Enter representative name" {...field} />
@@ -298,91 +283,132 @@ export const CollegeRegistrationForm = ({ onBack }: CollegeRegistrationFormProps
                         </FormItem>
                       )}
                     />
+
+                    {/* Optional Academic Fields */}
+                    <div className="md:col-span-2 mt-6">
+                      <h3 className="text-lg font-semibold mb-4 text-muted-foreground">Academic Information (Optional)</h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="departments"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Number of Departments</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., 15" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="totalStudents"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Total Number of Students</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., 2500" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="batchesPassedOut"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Number of Batches Passed Out</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., 25" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="passPercentage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Pass Percentage</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., 95%" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Academic Information */}
-                {currentSection === 2 && (
-                  <div className="grid md:grid-cols-2 gap-6 animate-fade-in">
-                    <FormField
-                      control={form.control}
-                      name="departments"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Departments *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 15" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="totalStudents"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Number of Students *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 2500" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="batchesPassedOut"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Batches Passed Out *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 25" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="passPercentage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Pass Percentage *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 95%" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                {/* Infrastructure & Facilities */}
-                {currentSection === 3 && (
+                {/* Section 2: Academic & Financial Details */}
+                {currentSection === 1 && (
                   <div className="space-y-6 animate-fade-in">
-                    <FormField
-                      control={form.control}
-                      name="infrastructureDetails"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Infrastructure Facilities *</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe your labs, placement training facilities, library, hostels, etc." 
-                              className="min-h-32"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="coordinatorName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Coordinator Name *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter coordinator name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="coordinatorDesignation"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Coordinator Designation *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Professor, Dean" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="coordinatorPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Coordinator Phone *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="+91 XXXXXXXXXX" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="coordinatorEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Coordinator Email *</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="coordinator@example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="feeConcession"
@@ -400,147 +426,106 @@ export const CollegeRegistrationForm = ({ onBack }: CollegeRegistrationFormProps
                         </FormItem>
                       )}
                     />
-                    
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                      <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground mb-2">Upload Infrastructure Photos</p>
-                      <p className="text-sm text-muted-foreground">Labs, placement training facilities, campus images</p>
-                      <Button variant="outline" className="mt-4">
-                        Choose Files
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
-                {/* Coordinator Details */}
-                {currentSection === 4 && (
-                  <div className="grid md:grid-cols-2 gap-6 animate-fade-in">
                     <FormField
                       control={form.control}
-                      name="coordinatorName"
+                      name="infrastructureDetails"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Coordinator Name *</FormLabel>
+                          <FormLabel>Infrastructure Facilities (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter coordinator name" {...field} />
+                            <Textarea 
+                              placeholder="Describe your labs, placement training facilities, library, hostels, etc." 
+                              className="min-h-32"
+                              {...field} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
-                    <FormField
-                      control={form.control}
-                      name="coordinatorDesignation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Coordinator Designation *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Professor, Dean" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="coordinatorPhone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Coordinator Phone *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="+91 XXXXXXXXXX" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="coordinatorEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Coordinator Email *</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="coordinator@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
 
-                {/* Bank Details */}
-                {currentSection === 5 && (
-                  <div className="space-y-6 animate-fade-in">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="bankName"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Bank Name *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter bank name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="accountNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Number *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter account number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="confirmAccountNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm Account Number *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Re-enter account number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="ifscCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>IFSC Code *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., SBIN0001234" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    {/* Bank Details */}
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-semibold mb-4">Bank Details</h3>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="bankName"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Bank Name *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter bank name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="accountNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Number *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter account number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="confirmAccountNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm Account Number *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Re-enter account number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="ifscCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>IFSC Code *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., SBIN0001234" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
-                    
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                      <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground mb-2">Upload Cancelled Cheque</p>
-                      <p className="text-sm text-muted-foreground">Please upload a cancelled cheque for verification</p>
-                      <Button variant="outline" className="mt-4">
-                        Choose File
-                      </Button>
+
+                    {/* File Uploads */}
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                        <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="text-muted-foreground mb-2">Upload Infrastructure Photos (Optional)</p>
+                        <p className="text-sm text-muted-foreground">Labs, placement training facilities, campus images</p>
+                        <Button variant="outline" className="mt-3">
+                          Choose Files
+                        </Button>
+                      </div>
+                      
+                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                        <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="text-muted-foreground mb-2">Upload Cancelled Cheque *</p>
+                        <p className="text-sm text-muted-foreground">Required for bank verification</p>
+                        <Button variant="outline" className="mt-3">
+                          Choose File
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

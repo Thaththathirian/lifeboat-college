@@ -1,13 +1,45 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Users, Award, Building } from "lucide-react";
+import { GraduationCap, Users, Award, Building, LogIn } from "lucide-react";
 import { CollegeRegistrationForm } from "./CollegeRegistrationForm";
+import { CollegePortal } from "./CollegePortal";
+import { LoginSystem } from "./LoginSystem";
+import { AdminPanel } from "./AdminPanel";
 
 export const CollegeLanding = () => {
-  const [showForm, setShowForm] = useState(false);
+  const [currentView, setCurrentView] = useState("landing");
+  const [userType, setUserType] = useState("");
 
-  if (showForm) {
-    return <CollegeRegistrationForm onBack={() => setShowForm(false)} />;
+  const handleLogin = (type: string, credentials: any) => {
+    setUserType(type);
+    if (type === "admin") {
+      setCurrentView("admin");
+    } else if (type === "college") {
+      setCurrentView("college-portal");
+    } else {
+      setCurrentView("landing");
+    }
+  };
+
+  if (currentView === "registration") {
+    return <CollegeRegistrationForm onBack={() => setCurrentView("landing")} />;
+  }
+
+  if (currentView === "login") {
+    return <LoginSystem onLogin={handleLogin} />;
+  }
+
+  if (currentView === "admin") {
+    return <AdminPanel />;
+  }
+
+  if (currentView === "college-portal") {
+    return <CollegePortal collegeData={{
+      id: "COL001",
+      name: "Demo College",
+      status: "approved",
+      approvalDate: "2024-01-01"
+    }} />;
   }
 
   return (
@@ -63,15 +95,26 @@ export const CollegeLanding = () => {
             Complete your college profile to join our network of partner institutions 
             and start making a difference in students' lives.
           </p>
-          <Button 
-            variant="hero" 
-            size="lg" 
-            onClick={() => setShowForm(true)}
-            className="text-lg px-8 py-6 h-auto"
-          >
-            <GraduationCap className="mr-3 h-6 w-6" />
-            Create College Profile
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              variant="hero" 
+              size="lg" 
+              onClick={() => setCurrentView("registration")}
+              className="text-lg px-8 py-6 h-auto"
+            >
+              <GraduationCap className="mr-3 h-6 w-6" />
+              Register College
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              onClick={() => setCurrentView("login")}
+              className="text-lg px-8 py-6 h-auto"
+            >
+              <LogIn className="mr-3 h-6 w-6" />
+              Login to Portal
+            </Button>
+          </div>
         </div>
       </div>
     </div>
