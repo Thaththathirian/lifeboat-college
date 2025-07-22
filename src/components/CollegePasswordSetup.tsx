@@ -149,7 +149,7 @@ export const CollegePasswordSetup = ({
       
       // Add infrastructure files
       uploadedFiles.infraFiles.forEach((file, index) => {
-        formData.append(`infrastructureFiles`, file);
+        formData.append('infrastructureFiles[]', file);
       });
       
       // Add cancelled cheque file
