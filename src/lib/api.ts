@@ -6,7 +6,7 @@ export interface CollegeRegistrationData {
   collegeName: string;
   phone: string;
   email: string;
-  password: string;
+  password?: string; // Made optional since it's set in password setup page
   address: string;
   establishedYear: string;
   representativeName: string;

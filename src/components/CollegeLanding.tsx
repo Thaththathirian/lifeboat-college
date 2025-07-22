@@ -4,7 +4,8 @@ import { GraduationCap, Users, Award, Building, LogIn } from "lucide-react";
 import { CollegeRegistrationForm } from "./CollegeRegistrationForm";
 import { CollegePortal } from "./CollegePortal";
 import { CollegeDashboard } from "./CollegeDashboard";
-import { EmailOTPVerification } from "./EmailOTPVerification";
+// import { EmailOTPVerification } from "./EmailOTPVerification";
+import { CollegePasswordSetup } from "./CollegePasswordSetup";
 import { LoginSystem } from "./LoginSystem";
 import { AdminPanel } from "./AdminPanel";
 import { CollegeRegistrationData } from "@/lib/api";
@@ -13,8 +14,10 @@ export const CollegeLanding = () => {
   const [currentView, setCurrentView] = useState("landing");
   const [userType, setUserType] = useState("");
   const [registeredCollegeId, setRegisteredCollegeId] = useState<string | null>(null);
-  const [otpEmail, setOtpEmail] = useState<string>("");
+  // const [otpEmail, setOtpEmail] = useState<string>("");
   const [collegeFormData, setCollegeFormData] = useState<CollegeRegistrationData | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{ infraFiles: File[], chequeFile: File | null } | null>(null);
+  const [currentFormSection, setCurrentFormSection] = useState<number>(0);
 
   const handleLogin = (type: string, credentials: any) => {
     setUserType(type);
@@ -35,17 +38,23 @@ export const CollegeLanding = () => {
           setRegisteredCollegeId(collegeId);
           setCurrentView("dashboard");
         }}
-        onProceedToOTP={(email, data) => {
-          setOtpEmail(email);
+        onProceedToPassword={(email, data, files) => {
+          // setOtpEmail(email);
           setCollegeFormData(data);
-          setCurrentView("otp-verification");
+          setUploadedFiles(files);
+          setCurrentView("password-setup");
         }}
-        // Pass the persisted form data back to the form
+        // Pass the persisted form data and files back to the form
         initialData={collegeFormData}
+        initialFiles={uploadedFiles}
+        initialSection={currentFormSection}
+        onSectionChange={(section) => setCurrentFormSection(section)}
       />
     );
   }
 
+  // Comment out OTP verification flow
+  /*
   if (currentView === "otp-verification" && otpEmail && collegeFormData) {
     return (
       <EmailOTPVerification
@@ -61,6 +70,28 @@ export const CollegeLanding = () => {
           // Clear the form data after successful registration
           setCollegeFormData(null);
           setOtpEmail("");
+        }}
+      />
+    );
+  }
+  */
+
+  // New password setup flow
+  if (currentView === "password-setup" && collegeFormData && uploadedFiles) {
+    return (
+      <CollegePasswordSetup
+        collegeData={collegeFormData}
+        uploadedFiles={uploadedFiles}
+        onBack={() => {
+          setCurrentView("registration");
+          // Keep the form data and files persistent by not clearing them
+        }}
+        onSuccess={(collegeId) => {
+          setRegisteredCollegeId(collegeId);
+          setCurrentView("dashboard");
+          // Clear the form data after successful registration
+          setCollegeFormData(null);
+          setUploadedFiles(null);
         }}
       />
     );

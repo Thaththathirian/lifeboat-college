@@ -51,19 +51,22 @@ type CollegeFormData = z.infer<typeof collegeFormSchema>;
 interface CollegeRegistrationFormProps {
   onBack: () => void;
   onRegistrationSuccess?: (collegeId: string) => void;
-  onProceedToOTP?: (email: string, data: CollegeFormData) => void;
+  onProceedToPassword?: (email: string, data: CollegeFormData, files: { infraFiles: File[], chequeFile: File | null }) => void;
   initialData?: CollegeFormData;
+  initialFiles?: { infraFiles: File[], chequeFile: File | null };
+  initialSection?: number;
+  onSectionChange?: (section: number) => void;
 }
 
-export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProceedToOTP, initialData }: CollegeRegistrationFormProps) => {
-  const [currentSection, setCurrentSection] = useState(0);
+export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProceedToPassword, initialData, initialFiles, initialSection, onSectionChange }: CollegeRegistrationFormProps) => {
+  const [currentSection, setCurrentSection] = useState(initialSection || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  // File upload state
-  const [infraFiles, setInfraFiles] = useState<File[]>([]);
+  // File upload state - initialize with initial files if provided
+  const [infraFiles, setInfraFiles] = useState<File[]>(initialFiles?.infraFiles || []);
   const [infraError, setInfraError] = useState<string>("");
-  const [chequeFile, setChequeFile] = useState<File | null>(null);
+  const [chequeFile, setChequeFile] = useState<File | null>(initialFiles?.chequeFile || null);
   const [chequeError, setChequeError] = useState<string>("");
 
   // File validation helpers
@@ -158,15 +161,26 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
     // Validate all required fields
     const allRequired = [...sectionRequiredFields[0], ...sectionRequiredFields[1]];
     const valid = await form.trigger(allRequired as any, { shouldFocus: true });
+    
+    // Always highlight missing fields when submit is clicked
+    allRequired.forEach(field => {
+      const value = form.getValues(field as keyof CollegeFormData);
+      if (!value || value.trim() === "") {
+        form.setError(field as keyof CollegeFormData, { type: 'manual', message: 'This field is required' });
+      }
+    });
+    
+    if (!chequeFile) {
+      setChequeError("Cancelled cheque file is required.");
+    }
+    
     if (!valid || !chequeFile) {
-      // Highlight missing fields (no error text for empty)
-      allRequired.forEach(field => {
-        const value = form.getValues(field as keyof CollegeFormData);
-        if (!value || value.trim() === "") {
-          form.setError(field as keyof CollegeFormData, { type: 'manual', message: '' });
-        }
+      // Show error message but don't prevent submission attempt
+      toast({
+        title: "Validation Error",
+        description: "Please fix the highlighted fields before submitting.",
+        variant: "destructive",
       });
-      if (!chequeFile) setChequeError("Cancelled cheque file is required.");
       return;
     }
     
@@ -175,14 +189,14 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
       console.log("College Registration Data:", data);
       console.log("Cheque file:", chequeFile.name);
       
-      // Proceed to OTP verification instead of direct submission
-      if (onProceedToOTP) {
-        console.log("Calling onProceedToOTP with email:", data.email);
-        onProceedToOTP(data.email, data);
+      // Proceed to password setup instead of direct submission
+      if (onProceedToPassword) {
+        console.log("Calling onProceedToPassword with email:", data.email);
+        onProceedToPassword(data.email, data as CollegeRegistrationData, { infraFiles, chequeFile });
       } else {
-        console.log("No OTP callback provided, using fallback...");
-        // Fallback to direct submission if OTP is not enabled
-        const response = await collegeApi.submitRegistration(data);
+        console.log("No password callback provided, using fallback...");
+        // Fallback to direct submission if password setup is not enabled
+        const response = await collegeApi.submitRegistration(data as CollegeRegistrationData);
         
         if (response.success) {
           toast({
@@ -226,12 +240,14 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
       }
       form.clearErrors();
       setCurrentSection(currentSection + 1);
+      onSectionChange?.(currentSection + 1);
     }
   };
   const prevSection = () => {
     if (currentSection > 0) {
       form.clearErrors();
       setCurrentSection(currentSection - 1);
+      onSectionChange?.(currentSection - 1);
     }
   };
 
@@ -793,9 +809,8 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                           <FormControl>
                             <Textarea 
                               placeholder="Describe the fee concession your college will provide to scholarship students" 
-                              className="min-h-24"
+                              className={`min-h-24 ${form.formState.errors.feeConcession ? 'border-red-500' : ''}`}
                               {...field} 
-                              className={`${form.formState.errors.feeConcession ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('feeConcession'); }}
                             />
                           </FormControl>
@@ -1029,33 +1044,20 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                   </Button>
                   
                   {currentSection === sections.length - 1 ? (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <Button 
-                              type="submit" 
-                              variant="hero" 
-                              disabled={isSubmitting || !areAllRequiredFieldsFilled()}
-                            >
-                              {isSubmitting ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Submitting...
-                                </>
-                              ) : (
-                                "Submit Registration"
-                              )}
-                            </Button>
-                          </div>
-                        </TooltipTrigger>
-                        {!areAllRequiredFieldsFilled() && (
-                          <TooltipContent>
-                            <p>Fill all required fields to enable submit</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Button 
+                      type="submit" 
+                      variant="hero" 
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit Registration"
+                      )}
+                    </Button>
                   ) : (
                     <Button 
                       type="button" 
