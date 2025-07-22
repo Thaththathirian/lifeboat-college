@@ -3,12 +3,18 @@ import { Button } from "@/components/ui/button";
 import { GraduationCap, Users, Award, Building, LogIn } from "lucide-react";
 import { CollegeRegistrationForm } from "./CollegeRegistrationForm";
 import { CollegePortal } from "./CollegePortal";
+import { CollegeDashboard } from "./CollegeDashboard";
+import { EmailOTPVerification } from "./EmailOTPVerification";
 import { LoginSystem } from "./LoginSystem";
 import { AdminPanel } from "./AdminPanel";
+import { CollegeRegistrationData } from "@/lib/api";
 
 export const CollegeLanding = () => {
   const [currentView, setCurrentView] = useState("landing");
   const [userType, setUserType] = useState("");
+  const [registeredCollegeId, setRegisteredCollegeId] = useState<string | null>(null);
+  const [otpEmail, setOtpEmail] = useState<string>("");
+  const [collegeFormData, setCollegeFormData] = useState<CollegeRegistrationData | null>(null);
 
   const handleLogin = (type: string, credentials: any) => {
     setUserType(type);
@@ -22,7 +28,42 @@ export const CollegeLanding = () => {
   };
 
   if (currentView === "registration") {
-    return <CollegeRegistrationForm onBack={() => setCurrentView("landing")} />;
+    return (
+      <CollegeRegistrationForm 
+        onBack={() => setCurrentView("landing")} 
+        onRegistrationSuccess={(collegeId) => {
+          setRegisteredCollegeId(collegeId);
+          setCurrentView("dashboard");
+        }}
+        onProceedToOTP={(email, data) => {
+          setOtpEmail(email);
+          setCollegeFormData(data);
+          setCurrentView("otp-verification");
+        }}
+        // Pass the persisted form data back to the form
+        initialData={collegeFormData}
+      />
+    );
+  }
+
+  if (currentView === "otp-verification" && otpEmail && collegeFormData) {
+    return (
+      <EmailOTPVerification
+        email={otpEmail}
+        collegeData={collegeFormData}
+        onBack={() => {
+          setCurrentView("registration");
+          // Keep the form data persistent by not clearing it
+        }}
+        onSuccess={(collegeId) => {
+          setRegisteredCollegeId(collegeId);
+          setCurrentView("dashboard");
+          // Clear the form data after successful registration
+          setCollegeFormData(null);
+          setOtpEmail("");
+        }}
+      />
+    );
   }
 
   if (currentView === "login") {
@@ -42,6 +83,10 @@ export const CollegeLanding = () => {
     }} />;
   }
 
+  if (currentView === "dashboard" && registeredCollegeId) {
+    return <CollegeDashboard collegeId={registeredCollegeId} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/20">
       <div className="container mx-auto px-4 py-16">
@@ -59,35 +104,8 @@ export const CollegeLanding = () => {
           </p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16 animate-scale-in">
-          <div className="bg-card p-8 rounded-xl shadow-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-2">
-            <Users className="h-12 w-12 text-primary mb-4" />
-            <h3 className="text-xl font-semibold mb-3">Student Management</h3>
-            <p className="text-muted-foreground">
-              Manage scholarship applications, track student progress, and support their academic journey.
-            </p>
-          </div>
-          
-          <div className="bg-card p-8 rounded-xl shadow-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-2">
-            <Award className="h-12 w-12 text-primary mb-4" />
-            <h3 className="text-xl font-semibold mb-3">Scholarship Program</h3>
-            <p className="text-muted-foreground">
-              Participate in our comprehensive scholarship program and help students achieve their dreams.
-            </p>
-          </div>
-          
-          <div className="bg-card p-8 rounded-xl shadow-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-2">
-            <Building className="h-12 w-12 text-primary mb-4" />
-            <h3 className="text-xl font-semibold mb-3">Infrastructure Support</h3>
-            <p className="text-muted-foreground">
-              Showcase your facilities and get support for infrastructure development and placement training.
-            </p>
-          </div>
-        </div>
-
         {/* CTA Section */}
-        <div className="text-center bg-card p-12 rounded-2xl shadow-card">
+        <div className="text-center bg-card p-12 rounded-2xl shadow-card mb-16">
           <h2 className="text-3xl font-bold mb-6 text-foreground">
             Ready to Partner with Us?
           </h2>
@@ -114,6 +132,33 @@ export const CollegeLanding = () => {
               <LogIn className="mr-3 h-6 w-6" />
               Login to Portal
             </Button>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-3 gap-8 mb-16 animate-scale-in">
+          <div className="bg-card p-8 rounded-xl shadow-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-2">
+            <Users className="h-12 w-12 text-primary mb-4" />
+            <h3 className="text-xl font-semibold mb-3">Student Management</h3>
+            <p className="text-muted-foreground">
+              Manage scholarship applications, track student progress, and support their academic journey.
+            </p>
+          </div>
+          
+          <div className="bg-card p-8 rounded-xl shadow-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-2">
+            <Award className="h-12 w-12 text-primary mb-4" />
+            <h3 className="text-xl font-semibold mb-3">Scholarship Program</h3>
+            <p className="text-muted-foreground">
+              Participate in our comprehensive scholarship program and help students achieve their dreams.
+            </p>
+          </div>
+          
+          <div className="bg-card p-8 rounded-xl shadow-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-2">
+            <Building className="h-12 w-12 text-primary mb-4" />
+            <h3 className="text-xl font-semibold mb-3">Infrastructure Support</h3>
+            <p className="text-muted-foreground">
+              Showcase your facilities and get support for infrastructure development and placement training.
+            </p>
           </div>
         </div>
       </div>

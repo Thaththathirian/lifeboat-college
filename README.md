@@ -1,73 +1,179 @@
-# Welcome to your Lovable project
+# College Registration System with Email OTP Verification
 
-## Project info
+A complete college registration system with Firebase email OTP verification, form persistence, and dashboard functionality.
 
-**URL**: https://lovable.dev/projects/6ff75db7-8932-4fd5-9b60-c951d6bcf079
+## Features
 
-## How can I edit this code?
+### 🔐 **Email OTP Verification**
+- **Firebase Integration**: Uses Firebase Authentication for secure OTP delivery
+- **reCAPTCHA Protection**: Invisible reCAPTCHA to prevent spam
+- **60-second Countdown**: Resend button with countdown timer
+- **Form Persistence**: All form data is preserved if OTP fails
+- **Bearer Token Authentication**: Secure API communication with Firebase ID tokens
 
-There are several ways of editing your application.
+### 📝 **Multi-Step Registration Form**
+- **Section 1**: College Information (Required fields)
+- **Section 2**: Academic & Financial Details (Required fields)
+- **Form Validation**: Real-time validation with error messages
+- **Progress Indicator**: Visual progress through form sections
 
-**Use Lovable**
+### 📊 **College Dashboard**
+- **Pending Verification Status**: Clear status indication
+- **Complete Form Display**: All submitted data organized in tabs
+- **Responsive Design**: Works on all devices
+- **Loading States**: User feedback during operations
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6ff75db7-8932-4fd5-9b60-c951d6bcf079) and start prompting.
+### 🔧 **Backend API**
+- **Express.js Server**: RESTful API endpoints
+- **Bearer Token Verification**: Firebase ID token validation
+- **Data Validation**: Server-side validation
+- **In-Memory Storage**: Demo data storage
 
-Changes made via Lovable will be committed automatically to this repo.
+## Setup Instructions
 
-**Use your preferred IDE**
+### 1. Install Dependencies
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# Install frontend dependencies
+npm install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Install backend dependencies
+npm install express cors
+```
 
-Follow these steps:
+### 2. Start the Backend Server
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+node server.js
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+The server will run on `http://localhost:3001`
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 3. Start the Frontend
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The frontend will run on `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Workflow
 
-**Use GitHub Codespaces**
+### 1. **Registration Flow**
+1. User fills out the multi-step registration form
+2. User clicks "Submit Registration" button
+3. System navigates to Email OTP verification page
+4. OTP is automatically sent to the user's email
+5. User enters the 6-digit OTP code
+6. System verifies OTP with Firebase
+7. If successful, data is sent to backend with bearer token
+8. User is redirected to dashboard with "Pending Verification" status
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 2. **Error Handling**
+- **OTP Failure**: User stays on OTP page, can resend or go back
+- **Form Data Persistence**: All entered data is preserved
+- **Network Errors**: Graceful error handling with user feedback
+- **Validation Errors**: Real-time form validation
 
-## What technologies are used for this project?
+### 3. **Resend Functionality**
+- **60-second Countdown**: Timer prevents spam
+- **Visual Feedback**: Loading states and countdown display
+- **Error Handling**: Specific error messages for different scenarios
 
-This project is built with:
+## API Endpoints
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Register College (with Firebase token)
+```
+POST /verify_email
+Authorization: Bearer <firebase-id-token>
+Content-Type: application/json
 
-## How can I deploy this project?
+{
+  "collegeName": "Example College",
+  "email": "college@example.com",
+  // ... other fields
+}
+```
 
-Simply open [Lovable](https://lovable.dev/projects/6ff75db7-8932-4fd5-9b60-c951d6bcf079) and click on Share -> Publish.
+### Get College Profile
+```
+GET /get_college/COL001
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Get All Colleges (Admin)
+```
+GET /get_all_colleges
+```
 
-Yes, you can!
+### Update College Status (Admin)
+```
+PATCH /update_college_status/COL001
+Content-Type: application/json
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+{
+  "status": "approved"
+}
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Form Fields
+
+### Section 1: College Information (Required)
+- College Name
+- Established Year
+- Address
+- Email
+- Phone Number
+- Management Representative Name
+- Representative Phone
+- Representative Email
+
+### Section 2: Academic & Financial Details (Required)
+- Coordinator Name
+- Coordinator Designation
+- Coordinator Phone
+- Coordinator Email
+- Fee Concession Details
+- Bank Name
+- Account Number
+- Confirm Account Number
+- IFSC Code
+
+## Firebase Configuration
+
+The system uses Firebase for:
+- **Email OTP**: Secure OTP delivery
+- **reCAPTCHA**: Spam protection
+- **ID Tokens**: API authentication
+
+Firebase config is in `src/lib/firebase.ts`
+
+## Security Features
+
+- **Bearer Token Authentication**: All API calls include Firebase ID tokens
+- **reCAPTCHA Protection**: Prevents automated form submissions
+- **Form Validation**: Client and server-side validation
+- **Error Handling**: Secure error messages without exposing internals
+
+## Testing
+
+1. **Fill Registration Form**: Complete all required fields
+2. **Submit Form**: Click "Submit Registration"
+3. **OTP Verification**: Enter the 6-digit code sent to email
+4. **Dashboard**: View submitted data with pending status
+5. **Resend Test**: Test resend functionality with countdown
+
+## Troubleshooting
+
+- **Firebase Setup**: Ensure Firebase project is configured correctly
+- **CORS Issues**: Backend includes CORS middleware
+- **OTP Delivery**: Check Firebase console for delivery status
+- **Token Issues**: Verify Firebase ID token generation
+
+## Development
+
+- **Frontend**: React + TypeScript + Vite
+- **UI Components**: Shadcn/ui
+- **Form Handling**: React Hook Form + Zod
+- **Authentication**: Firebase Auth
+- **Backend**: Express.js
+- **API**: RESTful with bearer token authentication
