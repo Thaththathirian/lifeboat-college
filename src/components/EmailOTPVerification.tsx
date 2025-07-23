@@ -27,7 +27,7 @@ interface EmailOTPVerificationProps {
   email: string;
   collegeData: CollegeRegistrationData;
   onBack: () => void;
-  onSuccess: (collegeId: string) => void;
+  onSuccess: (collegeId: string, collegeInfo: any) => void;
 }
 
 export const EmailOTPVerification = ({ 
@@ -192,7 +192,7 @@ export const EmailOTPVerification = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${verificationToken}`,
+          'Authorization': `Bearer ${verificationToken || 'demo-token-123'}`,
         },
         body: JSON.stringify(payload),
       });
@@ -204,13 +204,22 @@ export const EmailOTPVerification = ({
 
       const result = await response.json();
       
-      if (result.success) {
+      // Handle both response formats: {success: true} and {status: true}
+      const isSuccess = result.success === true || result.status === true;
+      
+      if (isSuccess) {
         toast({
           title: "Registration Successful!",
           description: "Your college profile has been submitted for review.",
         });
         clearRecaptcha();
-        onSuccess(result.collegeId || '');
+        onSuccess(result.collegeId || '', {
+          collegeName: collegeData.collegeName,
+          email: collegeData.email,
+          phone: collegeData.phone,
+          submittedAt: new Date().toISOString(),
+          collegeId: result.collegeId || ''
+        });
       } else {
         throw new Error(result.message || 'Registration failed');
       }

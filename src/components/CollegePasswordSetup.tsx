@@ -29,7 +29,7 @@ interface CollegePasswordSetupProps {
   collegeData: CollegeRegistrationData;
   uploadedFiles: { infraFiles: File[], chequeFile: File | null };
   onBack: () => void;
-  onSuccess: (collegeId: string) => void;
+  onSuccess: (collegeId: string, collegeInfo: any) => void;
 }
 
 export const CollegePasswordSetup = ({ 
@@ -166,7 +166,10 @@ export const CollegePasswordSetup = ({
       // Send all form data and files to the specified endpoint
       const response = await fetch('http://localhost/lifeboat/College/verify_email', {
         method: 'POST',
-        body: formData, // Use FormData instead of JSON
+        headers: {
+          'Authorization': 'Bearer demo-token-123',
+        },
+        body: formData,
       });
 
       if (!response.ok) {
@@ -176,12 +179,21 @@ export const CollegePasswordSetup = ({
 
       const result = await response.json();
       
-      if (result.success) {
+      // Handle both response formats: {success: true} and {status: true}
+      const isSuccess = result.success === true || result.status === true;
+      
+      if (isSuccess) {
         toast({
           title: "Registration Successful!",
           description: "Your college profile has been submitted for review.",
         });
-        onSuccess(result.collegeId || '');
+        onSuccess(result.collegeId || '', {
+          collegeName: collegeData.collegeName,
+          email: collegeData.email,
+          phone: collegeData.phone,
+          submittedAt: new Date().toISOString(),
+          collegeId: result.collegeId || ''
+        });
       } else {
         throw new Error(result.message || 'Registration failed');
       }

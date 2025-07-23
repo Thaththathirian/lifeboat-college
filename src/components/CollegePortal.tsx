@@ -15,7 +15,8 @@ import {
   Upload,
   Mail,
   Phone,
-  Building
+  Building,
+  Navigation
 } from "lucide-react";
 
 interface CollegePortalProps {
@@ -25,9 +26,10 @@ interface CollegePortalProps {
     status: "pending" | "approved" | "rejected";
     approvalDate?: string;
   };
+  onBackToDashboard?: () => void;
 }
 
-export const CollegePortal = ({ collegeData }: CollegePortalProps) => {
+export const CollegePortal = ({ collegeData, onBackToDashboard }: CollegePortalProps) => {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   if (collegeData.status !== "approved") {
@@ -88,18 +90,26 @@ export const CollegePortal = ({ collegeData }: CollegePortalProps) => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                Welcome to {collegeData.name}
-              </h1>
-              <div className="flex items-center space-x-4">
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Approved College
-                </Badge>
-                <span className="text-muted-foreground">
-                  Approved on: {collegeData.approvalDate}
-                </span>
+            <div className="flex items-center space-x-4">
+              {onBackToDashboard && (
+                <Button variant="ghost" onClick={onBackToDashboard} className="mr-4">
+                  <Navigation className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  Welcome to {collegeData.name}
+                </h1>
+                <div className="flex items-center space-x-4">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Approved College
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    Approved on: {collegeData.approvalDate}
+                  </span>
+                </div>
               </div>
             </div>
             <Building className="h-16 w-16 text-primary" />

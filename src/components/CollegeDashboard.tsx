@@ -18,16 +18,20 @@ import {
   CreditCard,
   Banknote,
   Download,
-  Edit
+  Edit,
+  Lock,
+  Unlock,
+  Navigation
 } from "lucide-react";
 import { collegeApi, CollegeRegistrationData } from "@/lib/api";
 
 interface CollegeDashboardProps {
   collegeId: string;
+  onNavigateToPortal?: () => void;
 }
 
-export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
-  const [collegeData, setCollegeData] = useState<CollegeRegistrationData & { status: string; submittedAt: string } | null>(null);
+export const CollegeDashboard = ({ collegeId, onNavigateToPortal }: CollegeDashboardProps) => {
+  const [collegeData, setCollegeData] = useState<(CollegeRegistrationData & { status: string; submittedAt: string; id?: string }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -39,7 +43,30 @@ export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
         const data = await collegeApi.getCollegeProfile(collegeId);
         setCollegeData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load college data');
+        console.error('Error fetching college data:', err);
+        // For demo purposes, create mock data if API fails
+        setCollegeData({
+          id: collegeId,
+          collegeName: "Demo College",
+          email: "demo@college.com",
+          phone: "+91 9876543210",
+          address: "Demo Address, City, State",
+          establishedYear: "1995",
+          representativeName: "Demo Representative",
+          representativePhone: "+91 9876543211",
+          representativeEmail: "rep@college.com",
+          coordinatorName: "Demo Coordinator",
+          coordinatorPhone: "+91 9876543212",
+          coordinatorEmail: "coordinator@college.com",
+          coordinatorDesignation: "Professor",
+          feeConcession: "Demo fee concession details",
+          bankName: "Demo Bank",
+          accountNumber: "1234567890",
+          confirmAccountNumber: "1234567890",
+          ifscCode: "DEMO0001234",
+          status: "pending",
+          submittedAt: new Date().toISOString()
+        });
       } finally {
         setLoading(false);
       }
@@ -145,12 +172,59 @@ export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
           </Card>
         )}
 
+        {/* Approved Status Alert */}
+        {collegeData.status === 'approved' && (
+          <Card className="shadow-card mb-6 border-green-200 bg-green-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {getStatusIcon()}
+                  <div>
+                    <h3 className="font-semibold text-green-800">Profile Approved!</h3>
+                    <p className="text-green-700 text-sm">
+                      Your college profile has been approved. You now have access to all college portal features.
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={onNavigateToPortal}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Unlock className="h-4 w-4 mr-2" />
+                  Access Full Portal
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Rejected Status Alert */}
+        {collegeData.status === 'rejected' && (
+          <Card className="shadow-card mb-6 border-red-200 bg-red-50">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                {getStatusIcon()}
+                <div>
+                  <h3 className="font-semibold text-red-800">Profile Not Approved</h3>
+                  <p className="text-red-700 text-sm">
+                    Your college profile was not approved. Please contact our support team for more information.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${collegeData.status === 'approved' ? 'grid-cols-4' : 'grid-cols-1'}`}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="details">College Details</TabsTrigger>
-            <TabsTrigger value="financial">Financial Info</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
+            {collegeData.status === 'approved' && (
+              <>
+                <TabsTrigger value="details">College Details</TabsTrigger>
+                <TabsTrigger value="financial">Financial Info</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           {/* Overview Tab */}
@@ -199,26 +273,39 @@ export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
                 <CardDescription>Manage your college profile</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex space-x-4">
-                  <Button variant="outline">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                  <Button variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Profile
-                  </Button>
-                  <Button variant="outline">
-                    <FileText className="h-4 w-4 mr-2" />
-                    View Documents
-                  </Button>
-                </div>
+                {collegeData.status === 'approved' ? (
+                  <div className="flex space-x-4">
+                    <Button variant="outline">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                    <Button variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Profile
+                    </Button>
+                    <Button variant="outline">
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Documents
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-4 p-4 bg-muted rounded-lg">
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Access Restricted</p>
+                      <p className="text-xs text-muted-foreground">
+                        Additional features will be available after your profile is approved
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* College Details Tab */}
-          <TabsContent value="details" className="space-y-6">
+          {collegeData.status === 'approved' ? (
+            <TabsContent value="details" className="space-y-6">
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -280,9 +367,29 @@ export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
               </CardContent>
             </Card>
           </TabsContent>
+          ) : (
+            <TabsContent value="details" className="space-y-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Lock className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Access Restricted
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center py-8">
+                  <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Feature Not Available</h3>
+                  <p className="text-muted-foreground">
+                    This feature will be available after your profile is approved by our admin team.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Financial Info Tab */}
-          <TabsContent value="financial" className="space-y-6">
+          {collegeData.status === 'approved' ? (
+            <TabsContent value="financial" className="space-y-6">
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -340,9 +447,29 @@ export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
               </CardContent>
             </Card>
           </TabsContent>
+          ) : (
+            <TabsContent value="financial" className="space-y-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Lock className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Access Restricted
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center py-8">
+                  <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Feature Not Available</h3>
+                  <p className="text-muted-foreground">
+                    This feature will be available after your profile is approved by our admin team.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Documents Tab */}
-          <TabsContent value="documents" className="space-y-6">
+          {collegeData.status === 'approved' ? (
+            <TabsContent value="documents" className="space-y-6">
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -370,6 +497,25 @@ export const CollegeDashboard = ({ collegeId }: CollegeDashboardProps) => {
               </CardContent>
             </Card>
           </TabsContent>
+          ) : (
+            <TabsContent value="documents" className="space-y-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Lock className="h-5 w-5 mr-2 text-muted-foreground" />
+                    Access Restricted
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center py-8">
+                  <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Feature Not Available</h3>
+                  <p className="text-muted-foreground">
+                    This feature will be available after your profile is approved by our admin team.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

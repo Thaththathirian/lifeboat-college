@@ -75,13 +75,15 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
   const handleInfraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInfraError("");
     if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const tooBig = files.find(f => f.size > MAX_FILE_SIZE);
+      const newFiles = Array.from(e.target.files);
+      const tooBig = newFiles.find(f => f.size > MAX_FILE_SIZE);
       if (tooBig) {
-        setInfraFiles([]);
         setInfraError("Each file must be 2MB or less.");
       } else {
-        setInfraFiles(files);
+        // Merge new files with existing files, avoiding duplicates
+        const existingFileNames = infraFiles.map(f => f.name);
+        const uniqueNewFiles = newFiles.filter(file => !existingFileNames.includes(file.name));
+        setInfraFiles([...infraFiles, ...uniqueNewFiles]);
       }
     }
   };
@@ -111,7 +113,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
 
   const form = useForm<CollegeFormData>({
     resolver: zodResolver(collegeFormSchema),
-    mode: "onSubmit", // Only validate on submit, not on change
+    mode: "onBlur", // Validate on blur for better UX
     defaultValues: initialData || {
       collegeName: "",
       establishedYear: "",
@@ -196,7 +198,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
       } else {
         console.log("No password callback provided, using fallback...");
         // Fallback to direct submission if password setup is not enabled
-        const response = await collegeApi.submitRegistration(data as CollegeRegistrationData);
+        const response = await collegeApi.submitRegistrationWithDemoToken(data as CollegeRegistrationData);
         
         if (response.success) {
           toast({
@@ -251,28 +253,9 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
     }
   };
 
-  // Validate current section when component mounts or section changes
+  // Clear errors when section changes to provide clean state
   useEffect(() => {
-    if (currentSection === 1) {
-      // Validate required fields on page 2 when it becomes active
-      const page2RequiredFields = [
-        'coordinatorName', 'coordinatorPhone', 'coordinatorEmail', 'coordinatorDesignation',
-        'feeConcession', 'bankName', 'accountNumber', 'confirmAccountNumber', 'ifscCode'
-      ];
-      
-      const missingFields = page2RequiredFields.filter(field => !getFieldStatus(field as keyof CollegeFormData));
-      
-      if (missingFields.length > 0) {
-        console.log('Page 2 missing fields:', missingFields);
-        // Show validation errors for missing fields
-        missingFields.forEach(field => {
-          form.setError(field as keyof CollegeFormData, {
-            type: 'manual',
-            message: `${field} is required`
-          });
-        });
-      }
-    }
+    form.clearErrors();
   }, [currentSection, form]);
 
   // Helper function to get field completion status
@@ -421,7 +404,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input 
                               placeholder="Enter college name" 
                               {...field} 
-                              className={`${form.formState.errors.collegeName ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.collegeName && form.formState.touchedFields.collegeName ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('collegeName'); }}
                             />
                           </FormControl>
@@ -444,7 +427,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input
                               placeholder="e.g., 1995"
                               {...field}
-                              className={`${form.formState.errors.establishedYear ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.establishedYear && form.formState.touchedFields.establishedYear ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('establishedYear'); }}
                             />
                           </FormControl>
@@ -467,7 +450,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Textarea
                               placeholder="Complete address with city and state"
                               {...field}
-                              className={`${form.formState.errors.address ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.address && form.formState.touchedFields.address ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('address'); }}
                             />
                           </FormControl>
@@ -491,7 +474,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               type="email"
                               placeholder="college@example.com"
                               {...field}
-                              className={`${form.formState.errors.email ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.email && form.formState.touchedFields.email ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('email'); }}
                             />
                           </FormControl>
@@ -524,7 +507,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 e.preventDefault();
                               }}
                               onChange={e => { field.onChange(e); form.clearErrors('phone'); }}
-                              className={`${form.formState.errors.phone && form.getValues('phone') === '' ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.phone && form.getValues('phone') === '' && form.formState.touchedFields.phone ? 'border-red-500' : ''}`}
                             />
                           </FormControl>
                           {form.formState.errors.phone && form.getValues('phone') === '' && (
@@ -546,7 +529,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input
                               placeholder="Enter representative name"
                               {...field}
-                              className={`${form.formState.errors.representativeName ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.representativeName && form.formState.touchedFields.representativeName ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('representativeName'); }}
                             />
                           </FormControl>
@@ -579,7 +562,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                   e.preventDefault();
                                 }}
                                 onChange={e => { field.onChange(e); form.clearErrors('representativePhone'); }}
-                                className={`${form.formState.errors.representativePhone && form.getValues('representativePhone') === '' ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.representativePhone && form.getValues('representativePhone') === '' && form.formState.touchedFields.representativePhone ? 'border-red-500' : ''}`}
                               />
                             </FormControl>
                             {form.formState.errors.representativePhone && form.getValues('representativePhone') === '' && (
@@ -602,7 +585,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               type="email"
                               placeholder="representative@example.com"
                               {...field}
-                              className={`${form.formState.errors.representativeEmail ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.representativeEmail && form.formState.touchedFields.representativeEmail ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('representativeEmail'); }}
                             />
                           </FormControl>
@@ -707,7 +690,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               <Input
                                 placeholder="Enter coordinator name"
                                 {...field}
-                                className={`${form.formState.errors.coordinatorName ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.coordinatorName && form.formState.touchedFields.coordinatorName ? 'border-red-500' : ''}`}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorName'); }}
                               />
                             </FormControl>
@@ -730,7 +713,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               <Input
                                 placeholder="e.g., Professor, Dean"
                                 {...field}
-                                className={`${form.formState.errors.coordinatorDesignation ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.coordinatorDesignation && form.formState.touchedFields.coordinatorDesignation ? 'border-red-500' : ''}`}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorDesignation'); }}
                               />
                             </FormControl>
@@ -763,10 +746,10 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                   e.preventDefault();
                                 }}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorPhone'); }}
-                                className={`${form.formState.errors.coordinatorPhone && form.getValues('coordinatorPhone') === '' ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.coordinatorPhone && form.getValues('coordinatorPhone') === '' && form.formState.touchedFields.coordinatorPhone ? 'border-red-500' : ''}`}
                               />
                             </FormControl>
-                            {form.formState.errors.coordinatorPhone && form.getValues('coordinatorPhone') === '' && (
+                            {form.formState.errors.coordinatorPhone && form.getValues('coordinatorPhone') === '' && form.formState.touchedFields.coordinatorPhone && (
                               <FormMessage />
                             )}
                           </FormItem>
@@ -786,7 +769,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 type="email"
                                 placeholder="coordinator@example.com"
                                 {...field}
-                                className={`${form.formState.errors.coordinatorEmail ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.coordinatorEmail && form.formState.touchedFields.coordinatorEmail ? 'border-red-500' : ''}`}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorEmail'); }}
                               />
                             </FormControl>
@@ -809,12 +792,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                           <FormControl>
                             <Textarea 
                               placeholder="Describe the fee concession your college will provide to scholarship students" 
-                              className={`min-h-24 ${form.formState.errors.feeConcession ? 'border-red-500' : ''}`}
+                              className={`min-h-24 ${form.formState.errors.feeConcession && form.formState.touchedFields.feeConcession ? 'border-red-500' : ''}`}
                               {...field} 
                               onChange={e => { field.onChange(e); form.clearErrors('feeConcession'); }}
                             />
                           </FormControl>
-                          {form.formState.errors.feeConcession?.message && form.getValues('feeConcession') !== '' && (
+                          {form.formState.errors.feeConcession?.message && form.getValues('feeConcession') !== '' && form.formState.touchedFields.feeConcession && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -855,7 +838,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Enter bank name"
                                   {...field}
-                                  className={`${form.formState.errors.bankName ? 'border-red-500' : ''}`}
+                                  className={`${form.formState.errors.bankName && form.formState.touchedFields.bankName ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('bankName'); }}
                                 />
                               </FormControl>
@@ -878,7 +861,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Enter account number"
                                   {...field}
-                                  className={`${form.formState.errors.accountNumber ? 'border-red-500' : ''}`}
+                                  className={`${form.formState.errors.accountNumber && form.formState.touchedFields.accountNumber ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('accountNumber'); }}
                                 />
                               </FormControl>
@@ -901,7 +884,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Re-enter account number"
                                   {...field}
-                                  className={`${form.formState.errors.confirmAccountNumber ? 'border-red-500' : ''}`}
+                                  className={`${form.formState.errors.confirmAccountNumber && form.formState.touchedFields.confirmAccountNumber ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('confirmAccountNumber'); }}
                                 />
                               </FormControl>
@@ -924,7 +907,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="e.g., SBIN0001234"
                                   {...field}
-                                  className={`${form.formState.errors.ifscCode ? 'border-red-500' : ''}`}
+                                  className={`${form.formState.errors.ifscCode && form.formState.touchedFields.ifscCode ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('ifscCode'); }}
                                 />
                               </FormControl>

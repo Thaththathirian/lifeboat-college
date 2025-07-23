@@ -4,6 +4,7 @@ import { GraduationCap, Users, Award, Building, LogIn } from "lucide-react";
 import { CollegeRegistrationForm } from "./CollegeRegistrationForm";
 import { CollegePortal } from "./CollegePortal";
 import { CollegeDashboard } from "./CollegeDashboard";
+import { VerificationPending } from "./VerificationPending";
 // import { EmailOTPVerification } from "./EmailOTPVerification";
 import { CollegePasswordSetup } from "./CollegePasswordSetup";
 import { LoginSystem } from "./LoginSystem";
@@ -14,6 +15,13 @@ export const CollegeLanding = () => {
   const [currentView, setCurrentView] = useState("landing");
   const [userType, setUserType] = useState("");
   const [registeredCollegeId, setRegisteredCollegeId] = useState<string | null>(null);
+  const [verificationData, setVerificationData] = useState<{
+    collegeName: string;
+    email: string;
+    phone: string;
+    submittedAt: string;
+    collegeId: string;
+  } | null>(null);
   // const [otpEmail, setOtpEmail] = useState<string>("");
   const [collegeFormData, setCollegeFormData] = useState<CollegeRegistrationData | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{ infraFiles: File[], chequeFile: File | null } | null>(null);
@@ -86,9 +94,17 @@ export const CollegeLanding = () => {
           setCurrentView("registration");
           // Keep the form data and files persistent by not clearing them
         }}
-        onSuccess={(collegeId) => {
+        onSuccess={(collegeId, collegeInfo) => {
           setRegisteredCollegeId(collegeId);
-          setCurrentView("dashboard");
+          // Set verification data for the pending page
+          setVerificationData({
+            collegeName: collegeInfo.collegeName,
+            email: collegeInfo.email,
+            phone: collegeInfo.phone,
+            submittedAt: collegeInfo.submittedAt,
+            collegeId: collegeId
+          });
+          setCurrentView("verification-pending");
           // Clear the form data after successful registration
           setCollegeFormData(null);
           setUploadedFiles(null);
@@ -106,16 +122,47 @@ export const CollegeLanding = () => {
   }
 
   if (currentView === "college-portal") {
-    return <CollegePortal collegeData={{
-      id: "COL001",
-      name: "Demo College",
-      status: "approved",
-      approvalDate: "2024-01-01"
-    }} />;
+    return <CollegePortal 
+      collegeData={{
+        id: "COL001",
+        name: "Demo College",
+        status: "approved",
+        approvalDate: "2024-01-01"
+      }}
+      onBackToDashboard={() => setCurrentView("dashboard")}
+    />;
+  }
+
+  if (currentView === "verification-pending" && verificationData) {
+    return <VerificationPending 
+      collegeData={verificationData}
+      onRefresh={() => {
+        // In a real app, this would check the verification status
+        // For demo purposes, we'll simulate a status check
+        // You can replace this with actual API call to check verification status
+        const isApproved = Math.random() > 0.7; // 30% chance of being approved for demo
+        
+        if (isApproved) {
+          setCurrentView("dashboard");
+        } else {
+          // Show a toast that status is still pending
+          alert("Your verification is still pending. Please check back later.");
+        }
+      }}
+    />;
   }
 
   if (currentView === "dashboard" && registeredCollegeId) {
-    return <CollegeDashboard collegeId={registeredCollegeId} />;
+    return <CollegeDashboard 
+      collegeId={registeredCollegeId} 
+      onNavigateToPortal={() => setCurrentView("college-portal")}
+    />;
+  }
+
+  // Check if user has pending verification and redirect them
+  if (verificationData && currentView === "landing") {
+    setCurrentView("verification-pending");
+    return null; // This will trigger a re-render with the verification pending page
   }
 
   return (
