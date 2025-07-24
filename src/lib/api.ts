@@ -31,6 +31,9 @@ export interface CollegeRegistrationData {
   batchesPassedOut?: string;
   passPercentage?: string;
   infrastructureDetails?: string;
+  
+  // Automatically included field
+  fieldName: string;
 }
 
 export interface CollegeRegistrationResponse {

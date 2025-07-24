@@ -144,6 +144,9 @@ export const CollegePasswordSetup = ({
         formData.append('infrastructureDetails', collegeData.infrastructureDetails);
       }
       
+      // Add fieldName automatically
+      formData.append('fieldName', 'college registration');
+      
       // Add password data
       formData.append('confirmPassword', data.confirmPassword);
       

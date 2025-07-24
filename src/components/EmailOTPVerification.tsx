@@ -184,7 +184,8 @@ export const EmailOTPVerification = ({
       const payload = {
         ...collegeData,
         password: data.password,
-        confirmPassword: data.confirmPassword
+        confirmPassword: data.confirmPassword,
+        fieldName: "college registration"
       };
 
       // Send to the specified endpoint with verification token

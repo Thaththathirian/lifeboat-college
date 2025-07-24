@@ -188,17 +188,24 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
     
     try {
       setIsSubmitting(true);
-      console.log("College Registration Data:", data);
+      
+      // Add fieldName automatically to the submission data
+      const submissionData = {
+        ...data,
+        fieldName: "college registration"
+      } as CollegeRegistrationData;
+      
+      console.log("College Registration Data:", submissionData);
       console.log("Cheque file:", chequeFile.name);
       
       // Proceed to password setup instead of direct submission
       if (onProceedToPassword) {
         console.log("Calling onProceedToPassword with email:", data.email);
-        onProceedToPassword(data.email, data as CollegeRegistrationData, { infraFiles, chequeFile });
+        onProceedToPassword(data.email, submissionData, { infraFiles, chequeFile });
       } else {
         console.log("No password callback provided, using fallback...");
         // Fallback to direct submission if password setup is not enabled
-        const response = await collegeApi.submitRegistrationWithDemoToken(data as CollegeRegistrationData);
+        const response = await collegeApi.submitRegistrationWithDemoToken(submissionData);
         
         if (response.success) {
           toast({
