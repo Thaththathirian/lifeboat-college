@@ -22,6 +22,7 @@ export const CollegeLanding = () => {
     submittedAt: string;
     collegeId: string;
   } | null>(null);
+  const [fullCollegeData, setFullCollegeData] = useState<CollegeRegistrationData | null>(null);
   // const [otpEmail, setOtpEmail] = useState<string>("");
   const [collegeFormData, setCollegeFormData] = useState<CollegeRegistrationData | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{ infraFiles: File[], chequeFile: File | null } | null>(null);
@@ -104,6 +105,8 @@ export const CollegeLanding = () => {
             submittedAt: collegeInfo.submittedAt,
             collegeId: collegeId
           });
+          // Store the full college data for the verification pending page
+          setFullCollegeData(collegeFormData);
           setCurrentView("verification-pending");
           // Clear the form data after successful registration
           setCollegeFormData(null);
@@ -134,8 +137,37 @@ export const CollegeLanding = () => {
   }
 
   if (currentView === "verification-pending" && verificationData) {
+    // Use full college data if available, otherwise fall back to basic data
+    const collegeDataToShow = fullCollegeData ? {
+      ...fullCollegeData,
+      submittedAt: verificationData.submittedAt,
+      collegeId: verificationData.collegeId
+    } : {
+      // Fallback with basic data structure
+      collegeName: verificationData.collegeName,
+      email: verificationData.email,
+      phone: verificationData.phone,
+      address: "",
+      establishedYear: "",
+      representativeName: "",
+      representativePhone: "",
+      representativeEmail: "",
+      coordinatorName: "",
+      coordinatorPhone: "",
+      coordinatorEmail: "",
+      coordinatorDesignation: "",
+      feeConcession: "",
+      bankName: "",
+      accountNumber: "",
+      confirmAccountNumber: "",
+      ifscCode: "",
+      fieldName: "college registration",
+      submittedAt: verificationData.submittedAt,
+      collegeId: verificationData.collegeId
+    };
+
     return <VerificationPending 
-      collegeData={verificationData}
+      collegeData={collegeDataToShow}
       onRefresh={() => {
         // In a real app, this would check the verification status
         // For demo purposes, we'll simulate a status check

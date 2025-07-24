@@ -12,14 +12,20 @@ import {
   Calendar,
   FileText,
   Download,
-  RefreshCw
+  RefreshCw,
+  User,
+  CreditCard,
+  MapPin,
+  Globe,
+  GraduationCap,
+  Users,
+  Award,
+  Banknote
 } from "lucide-react";
+import { CollegeRegistrationData } from "@/lib/api";
 
 interface VerificationPendingProps {
-  collegeData: {
-    collegeName: string;
-    email: string;
-    phone: string;
+  collegeData: CollegeRegistrationData & {
     submittedAt: string;
     collegeId: string;
   };
@@ -104,6 +110,10 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
                   <p className="text-lg font-semibold text-primary">{collegeData.collegeId}</p>
                 </div>
                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">Established Year</label>
+                  <p className="text-lg font-semibold">{collegeData.establishedYear}</p>
+                </div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">Submitted On</label>
                   <p className="text-lg font-semibold">{formatDate(collegeData.submittedAt)}</p>
                 </div>
@@ -123,10 +133,195 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
                     <p className="text-lg font-semibold">{collegeData.phone}</p>
                   </div>
                 </div>
+                {collegeData.collegeWebsite && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Website</label>
+                    <div className="flex items-center space-x-2">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-lg font-semibold">{collegeData.collegeWebsite}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Address */}
+            <div className="mt-6">
+              <label className="text-sm font-medium text-muted-foreground">Address</label>
+              <div className="flex items-start space-x-2 mt-1">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                <p className="text-lg font-semibold">{collegeData.address}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Management Representative */}
+        <Card className="shadow-card mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <User className="h-6 w-6 mr-2" />
+              Management Representative
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Name</label>
+                  <p className="text-lg font-semibold">{collegeData.representativeName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-lg font-semibold">{collegeData.representativePhone}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <div className="flex items-center space-x-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-lg font-semibold">{collegeData.representativeEmail}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Academic Coordinator */}
+        <Card className="shadow-card mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <GraduationCap className="h-6 w-6 mr-2" />
+              Academic Coordinator
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Name</label>
+                  <p className="text-lg font-semibold">{collegeData.coordinatorName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Designation</label>
+                  <p className="text-lg font-semibold">{collegeData.coordinatorDesignation}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-lg font-semibold">{collegeData.coordinatorPhone}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <div className="flex items-center space-x-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-lg font-semibold">{collegeData.coordinatorEmail}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Academic Information */}
+        {(collegeData.departments || collegeData.totalStudents || collegeData.batchesPassedOut || collegeData.passPercentage) && (
+          <Card className="shadow-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="h-6 w-6 mr-2" />
+                Academic Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                {collegeData.departments && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Number of Departments</label>
+                    <p className="text-lg font-semibold">{collegeData.departments}</p>
+                  </div>
+                )}
+                {collegeData.totalStudents && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Total Students</label>
+                    <p className="text-lg font-semibold">{collegeData.totalStudents}</p>
+                  </div>
+                )}
+                {collegeData.batchesPassedOut && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Batches Passed Out</label>
+                    <p className="text-lg font-semibold">{collegeData.batchesPassedOut}</p>
+                  </div>
+                )}
+                {collegeData.passPercentage && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Pass Percentage</label>
+                    <p className="text-lg font-semibold">{collegeData.passPercentage}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Financial Information */}
+        <Card className="shadow-card mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CreditCard className="h-6 w-6 mr-2" />
+              Financial Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Fee Concession Details</label>
+                <p className="text-lg font-semibold mt-1">{collegeData.feeConcession}</p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Bank Name</label>
+                  <p className="text-lg font-semibold">{collegeData.bankName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Account Number</label>
+                  <p className="text-lg font-semibold">{collegeData.accountNumber}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">IFSC Code</label>
+                  <p className="text-lg font-semibold">{collegeData.ifscCode}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Infrastructure Details */}
+        {collegeData.infrastructureDetails && (
+          <Card className="shadow-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Award className="h-6 w-6 mr-2" />
+                Infrastructure Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Facilities & Infrastructure</label>
+                <p className="text-lg font-semibold mt-1">{collegeData.infrastructureDetails}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* What Happens Next */}
         <Card className="shadow-card mb-8">
