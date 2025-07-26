@@ -69,6 +69,9 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
   const [chequeFile, setChequeFile] = useState<File | null>(initialFiles?.chequeFile || null);
   const [chequeError, setChequeError] = useState<string>("");
 
+  // Field-specific error state for backend validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   // File validation helpers
   const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
@@ -160,6 +163,9 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
 
   // On submit, validate all required fields
   const onSubmit = async (data: CollegeFormData) => {
+    // Clear any previous field errors
+    setFieldErrors({});
+    
     // Validate all required fields
     const allRequired = [...sectionRequiredFields[0], ...sectionRequiredFields[1]];
     const valid = await form.trigger(allRequired as any, { shouldFocus: true });
@@ -218,11 +224,44 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
             onRegistrationSuccess(response.collegeId);
           }
         } else {
-          throw new Error(response.message || 'Registration failed');
+          // Handle backend validation errors
+          if (response.message && typeof response.message === 'object') {
+            // This is the error response format with field-specific errors
+            setFieldErrors(response.message as Record<string, string>);
+            
+            // Show a general error toast
+            toast({
+              title: "Validation Error",
+              description: "Please fix the highlighted fields below.",
+              variant: "destructive",
+            });
+          } else {
+            throw new Error(response.message || 'Registration failed');
+          }
         }
       }
     } catch (error) {
       console.error('Registration error:', error);
+      
+      // Handle error response format
+      if (error instanceof Error && error.message.includes('HTTP error')) {
+        try {
+          // Try to parse the error response
+          const errorResponse = JSON.parse(error.message.split('body: ')[1] || '{}');
+          if (errorResponse.message && typeof errorResponse.message === 'object') {
+            setFieldErrors(errorResponse.message as Record<string, string>);
+            toast({
+              title: "Validation Error",
+              description: "Please fix the highlighted fields below.",
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch (parseError) {
+          // If parsing fails, show generic error
+        }
+      }
+      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "There was an error submitting your registration. Please try again.",
@@ -291,6 +330,16 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
     }
     
     return requiredFields.every(field => getFieldStatus(field as keyof CollegeFormData)) && chequeFile;
+  };
+
+  // Helper function to get field error from backend
+  const getFieldError = (fieldName: string): string | undefined => {
+    return fieldErrors[fieldName];
+  };
+
+  // Helper function to check if field has error
+  const hasFieldError = (fieldName: string): boolean => {
+    return !!fieldErrors[fieldName];
   };
 
   // Function to restrict phone input to numbers and allowed characters
@@ -411,13 +460,15 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input 
                               placeholder="Enter college name" 
                               {...field} 
-                              className={`${form.formState.errors.collegeName && form.formState.touchedFields.collegeName ? 'border-red-500' : ''}`}
-                              onChange={e => { field.onChange(e); form.clearErrors('collegeName'); }}
+                              className={`${(form.formState.errors.collegeName && form.formState.touchedFields.collegeName) || hasFieldError('collegeName') ? 'border-red-500' : ''}`}
+                              onChange={e => { field.onChange(e); form.clearErrors('collegeName'); setFieldErrors(prev => ({ ...prev, collegeName: undefined })); }}
                             />
                           </FormControl>
-                          {form.formState.errors.collegeName?.message && form.getValues('collegeName') !== '' && (
-                            <FormMessage />
-                          )}
+                          {(form.formState.errors.collegeName?.message && form.getValues('collegeName') !== '') || getFieldError('collegeName') ? (
+                            <FormMessage>
+                              {getFieldError('collegeName') || form.formState.errors.collegeName?.message}
+                            </FormMessage>
+                          ) : null}
                         </FormItem>
                       )}
                     />
@@ -434,13 +485,15 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input
                               placeholder="e.g., 1995"
                               {...field}
-                              className={`${form.formState.errors.establishedYear && form.formState.touchedFields.establishedYear ? 'border-red-500' : ''}`}
-                              onChange={e => { field.onChange(e); form.clearErrors('establishedYear'); }}
+                              className={`${(form.formState.errors.establishedYear && form.formState.touchedFields.establishedYear) || hasFieldError('establishedYear') ? 'border-red-500' : ''}`}
+                              onChange={e => { field.onChange(e); form.clearErrors('establishedYear'); setFieldErrors(prev => ({ ...prev, establishedYear: undefined })); }}
                             />
                           </FormControl>
-                          {form.formState.errors.establishedYear?.message && form.getValues('establishedYear') !== '' && (
-                            <FormMessage />
-                          )}
+                          {(form.formState.errors.establishedYear?.message && form.getValues('establishedYear') !== '') || getFieldError('establishedYear') ? (
+                            <FormMessage>
+                              {getFieldError('establishedYear') || form.formState.errors.establishedYear?.message}
+                            </FormMessage>
+                          ) : null}
                         </FormItem>
                       )}
                     />
@@ -670,9 +723,18 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <FormItem>
                               <FormLabel>Pass Percentage</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., 95%" {...field} />
+                                <Input 
+                                  placeholder="e.g., 95%" 
+                                  {...field} 
+                                  className={`${hasFieldError('passPercentage') ? 'border-red-500' : ''}`}
+                                  onChange={e => { field.onChange(e); setFieldErrors(prev => ({ ...prev, passPercentage: undefined })); }}
+                                />
                               </FormControl>
-                              <FormMessage />
+                              {getFieldError('passPercentage') ? (
+                                <FormMessage>
+                                  {getFieldError('passPercentage')}
+                                </FormMessage>
+                              ) : null}
                             </FormItem>
                           )}
                         />
@@ -868,13 +930,15 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Enter account number"
                                   {...field}
-                                  className={`${form.formState.errors.accountNumber && form.formState.touchedFields.accountNumber ? 'border-red-500' : ''}`}
-                                  onChange={e => { field.onChange(e); form.clearErrors('accountNumber'); }}
+                                  className={`${(form.formState.errors.accountNumber && form.formState.touchedFields.accountNumber) || hasFieldError('accountNumber') ? 'border-red-500' : ''}`}
+                                  onChange={e => { field.onChange(e); form.clearErrors('accountNumber'); setFieldErrors(prev => ({ ...prev, accountNumber: undefined })); }}
                                 />
                               </FormControl>
-                              {form.formState.errors.accountNumber?.message && form.getValues('accountNumber') !== '' && (
-                                <FormMessage />
-                              )}
+                              {(form.formState.errors.accountNumber?.message && form.getValues('accountNumber') !== '') || getFieldError('accountNumber') ? (
+                                <FormMessage>
+                                  {getFieldError('accountNumber') || form.formState.errors.accountNumber?.message}
+                                </FormMessage>
+                              ) : null}
                             </FormItem>
                           )}
                         />
@@ -914,13 +978,15 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="e.g., SBIN0001234"
                                   {...field}
-                                  className={`${form.formState.errors.ifscCode && form.formState.touchedFields.ifscCode ? 'border-red-500' : ''}`}
-                                  onChange={e => { field.onChange(e); form.clearErrors('ifscCode'); }}
+                                  className={`${(form.formState.errors.ifscCode && form.formState.touchedFields.ifscCode) || hasFieldError('ifscCode') ? 'border-red-500' : ''}`}
+                                  onChange={e => { field.onChange(e); form.clearErrors('ifscCode'); setFieldErrors(prev => ({ ...prev, ifscCode: undefined })); }}
                                 />
                               </FormControl>
-                              {form.formState.errors.ifscCode?.message && form.getValues('ifscCode') !== '' && (
-                                <FormMessage />
-                              )}
+                              {(form.formState.errors.ifscCode?.message && form.getValues('ifscCode') !== '') || getFieldError('ifscCode') ? (
+                                <FormMessage>
+                                  {getFieldError('ifscCode') || form.formState.errors.ifscCode?.message}
+                                </FormMessage>
+                              ) : null}
                             </FormItem>
                           )}
                         />

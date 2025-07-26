@@ -44,29 +44,7 @@ export const CollegeDashboard = ({ collegeId, onNavigateToPortal }: CollegeDashb
         setCollegeData(data);
       } catch (err) {
         console.error('Error fetching college data:', err);
-        // For demo purposes, create mock data if API fails
-        setCollegeData({
-          id: collegeId,
-          collegeName: "Demo College",
-          email: "demo@college.com",
-          phone: "+91 9876543210",
-          address: "Demo Address, City, State",
-          establishedYear: "1995",
-          representativeName: "Demo Representative",
-          representativePhone: "+91 9876543211",
-          representativeEmail: "rep@college.com",
-          coordinatorName: "Demo Coordinator",
-          coordinatorPhone: "+91 9876543212",
-          coordinatorEmail: "coordinator@college.com",
-          coordinatorDesignation: "Professor",
-          feeConcession: "Demo fee concession details",
-          bankName: "Demo Bank",
-          accountNumber: "1234567890",
-          confirmAccountNumber: "1234567890",
-          ifscCode: "DEMO0001234",
-          status: "pending",
-          submittedAt: new Date().toISOString()
-        });
+        setError(err instanceof Error ? err.message : 'Failed to fetch college data');
       } finally {
         setLoading(false);
       }

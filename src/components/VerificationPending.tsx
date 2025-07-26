@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +20,11 @@ import {
   GraduationCap,
   Users,
   Award,
-  Banknote
+  Banknote,
+  Upload,
+  Eye
 } from "lucide-react";
-import { CollegeRegistrationData } from "@/lib/api";
+import { CollegeRegistrationData, collegeApi } from "@/lib/api";
 
 interface VerificationPendingProps {
   collegeData: CollegeRegistrationData & {
@@ -32,7 +34,15 @@ interface VerificationPendingProps {
   onRefresh?: () => void;
 }
 
+interface UploadedDocuments {
+  infraFiles?: File[];
+  chequeFile?: File | null;
+}
+
 export const VerificationPending = ({ collegeData, onRefresh }: VerificationPendingProps) => {
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocuments | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -42,6 +52,64 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
       minute: '2-digit'
     });
   };
+
+  // Fetch college data when component mounts (for revisits)
+  useEffect(() => {
+    const fetchCollegeData = async () => {
+      try {
+        setIsLoading(true);
+        // In a real implementation, you would fetch the college data by ID
+        // For now, we'll use the passed data
+        console.log('Fetching college data for ID:', collegeData.collegeId);
+        
+        // Simulate API call to get uploaded documents
+        // In real implementation, this would be an API call
+        setTimeout(() => {
+          setUploadedDocuments({
+            infraFiles: [
+              new File([''], 'lab-photos.jpg', { type: 'image/jpeg' }),
+              new File([''], 'campus-view.jpg', { type: 'image/jpeg' }),
+              new File([''], 'library.jpg', { type: 'image/jpeg' })
+            ],
+            chequeFile: new File([''], 'cancelled-cheque.pdf', { type: 'application/pdf' })
+          });
+          setIsLoading(false);
+        }, 1000);
+      } catch (error) {
+        console.error('Error fetching college data:', error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchCollegeData();
+  }, [collegeData.collegeId]);
+
+  const handleDownloadDocument = (file: File) => {
+    // Create a download link for the file
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/20 py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading college data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/20 py-8">
@@ -323,83 +391,105 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
           </Card>
         )}
 
-        {/* What Happens Next */}
-        <Card className="shadow-card mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckCircle className="h-6 w-6 mr-2 text-green-600" />
-              What Happens Next?
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="flex items-start space-x-4">
-                <div className="bg-green-100 p-2 rounded-full">
-                  <span className="text-green-600 font-bold">1</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Admin Review</h3>
-                  <p className="text-muted-foreground">
-                    Our admin team will review your college profile, verify documents, and check all submitted information.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-4">
-                <div className="bg-blue-100 p-2 rounded-full">
-                  <span className="text-blue-600 font-bold">2</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Email Notification</h3>
-                  <p className="text-muted-foreground">
-                    You will receive an email notification at <strong>{collegeData.email}</strong> once the review is complete.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-4">
-                <div className="bg-purple-100 p-2 rounded-full">
-                  <span className="text-purple-600 font-bold">3</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Portal Access</h3>
-                  <p className="text-muted-foreground">
-                    Once approved, you'll have full access to the college portal with all features and capabilities.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Uploaded Documents */}
+        {uploadedDocuments && (
+          <Card className="shadow-card mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Upload className="h-6 w-6 mr-2" />
+                Uploaded Documents
+              </CardTitle>
+              <CardDescription>
+                Documents submitted with your registration
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Infrastructure Photos */}
+                {uploadedDocuments.infraFiles && uploadedDocuments.infraFiles.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                      Infrastructure Photos
+                    </label>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {uploadedDocuments.infraFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadDocument(file)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // In a real app, this would open a preview
+                                alert(`Preview: ${file.name}`);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-        {/* Estimated Timeline */}
-        <Card className="shadow-card mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calendar className="h-6 w-6 mr-2" />
-              Estimated Timeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">24-48</div>
-                <div className="text-sm text-muted-foreground">Hours</div>
-                <div className="text-xs text-muted-foreground mt-1">Initial Review</div>
+                {/* Cancelled Cheque */}
+                {uploadedDocuments.chequeFile && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                      Cancelled Cheque
+                    </label>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{uploadedDocuments.chequeFile.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(uploadedDocuments.chequeFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(uploadedDocuments.chequeFile!)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // In a real app, this would open a preview
+                            alert(`Preview: ${uploadedDocuments.chequeFile!.name}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">3-5</div>
-                <div className="text-sm text-muted-foreground">Days</div>
-                <div className="text-xs text-muted-foreground mt-1">Complete Verification</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">Immediate</div>
-                <div className="text-sm text-muted-foreground">Access</div>
-                <div className="text-xs text-muted-foreground mt-1">After Approval</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <Card className="shadow-card">

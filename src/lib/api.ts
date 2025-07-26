@@ -56,11 +56,21 @@ export const collegeApi = {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+      
+      // Handle both success and error responses
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // This is an error response with field-specific errors
+        if (result.status === false && result.message && typeof result.message === 'object') {
+          return {
+            success: false,
+            message: result.message,
+          };
+        } else {
+          throw new Error(result.message || `HTTP error! status: ${response.status}`);
+        }
       }
 
-      const result = await response.json();
       return result;
     } catch (error) {
       console.error('Error submitting registration:', error);
@@ -80,11 +90,21 @@ export const collegeApi = {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+      
+      // Handle both success and error responses
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // This is an error response with field-specific errors
+        if (result.status === false && result.message && typeof result.message === 'object') {
+          return {
+            success: false,
+            message: result.message,
+          };
+        } else {
+          throw new Error(result.message || `HTTP error! status: ${response.status}`);
+        }
       }
 
-      const result = await response.json();
       return result;
     } catch (error) {
       console.error('Error submitting registration with token:', error);
@@ -104,11 +124,21 @@ export const collegeApi = {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+      
+      // Handle both success and error responses
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // This is an error response with field-specific errors
+        if (result.status === false && result.message && typeof result.message === 'object') {
+          return {
+            success: false,
+            message: result.message,
+          };
+        } else {
+          throw new Error(result.message || `HTTP error! status: ${response.status}`);
+        }
       }
 
-      const result = await response.json();
       return result;
     } catch (error) {
       console.error('Error submitting registration with demo token:', error);
