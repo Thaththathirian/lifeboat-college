@@ -15,31 +15,63 @@ import { collegeApi, CollegeRegistrationData } from "@/lib/api";
 const collegeFormSchema = z.object({
   // Section 1: College Information (Required fields only)
   collegeName: z.string().min(2, "College name is required"),
-  phone: z.string().min(1, "Phone number is required").regex(/^[\d\s\-\(\)\+]+$/, "Please enter a valid phone number (numbers, spaces, hyphens, parentheses, and + only)"),
+  phone: z.string()
+    .min(1, "Phone number is required")
+    .min(10, "The Mobile field must be at least 10 characters in length.")
+    .regex(/^[\d\s\-\(\)\+]+$/, "Please enter a valid phone number (numbers, spaces, hyphens, parentheses, and + only)"),
   email: z.string().email("Valid email is required"),
   address: z.string().min(10, "Complete address is required"),
-  establishedYear: z.string().min(4, "Established year is required"),
+  establishedYear: z.string()
+    .min(1, "Established year is required")
+    .regex(/^\d+$/, "The Established Year field must contain only numbers."),
   representativeName: z.string().min(2, "Management representative name is required"),
-  representativePhone: z.string().min(1, "Representative phone is required").regex(/^[\d\s\-\(\)\+]+$/, "Please enter a valid phone number (numbers, spaces, hyphens, parentheses, and + only)"),
+  representativePhone: z.string()
+    .min(1, "Representative phone is required")
+    .min(10, "The Representative Mobile field must be at least 10 characters in length.")
+    .regex(/^[\d\s\-\(\)\+]+$/, "Please enter a valid phone number (numbers, spaces, hyphens, parentheses, and + only)"),
   representativeEmail: z.string().email("Representative email is required"),
   
   // Section 2: Academic & Financial Details (Required fields only)
   coordinatorName: z.string().min(2, "Coordinator name is required"),
-  coordinatorPhone: z.string().min(1, "Coordinator phone is required").regex(/^[\d\s\-\(\)\+]+$/, "Please enter a valid phone number (numbers, spaces, hyphens, parentheses, and + only)"),
+  coordinatorPhone: z.string()
+    .min(1, "Coordinator phone is required")
+    .min(10, "The Coordinator Phone field must be at least 10 characters in length.")
+    .regex(/^[\d\s\-\(\)\+]+$/, "Please enter a valid phone number (numbers, spaces, hyphens, parentheses, and + only)"),
   coordinatorEmail: z.string().email("Coordinator email is required"),
   coordinatorDesignation: z.string().min(2, "Coordinator designation is required"),
   feeConcession: z.string().min(10, "Fee concession details are required"),
   bankName: z.string().min(2, "Bank name is required"),
-  accountNumber: z.string().min(8, "Account number is required"),
+  accountNumber: z.string()
+    .min(8, "Account number is required")
+    .regex(/^\d+$/, "The Account Number field must contain only numbers."),
   confirmAccountNumber: z.string().min(8, "Please confirm account number"),
-  ifscCode: z.string().min(11, "IFSC code must be 11 characters").max(11, "IFSC code must be 11 characters"),
+  ifscCode: z.string()
+    .min(11, "IFSC code must be 11 characters")
+    .max(11, "IFSC code must be 11 characters")
+    .regex(/^[A-Z0-9]{11}$/, "Invalid IFSC Code format."),
   
   // Additional fields for better profiling
   collegeWebsite: z.string().optional(),
-  departments: z.string().optional(),
-  totalStudents: z.string().optional(),
-  batchesPassedOut: z.string().optional(),
-  passPercentage: z.string().optional(),
+  departments: z.string()
+    .optional()
+    .refine((val) => !val || /^\d+$/.test(val), {
+      message: "Number of departments must contain only numbers."
+    }),
+  totalStudents: z.string()
+    .optional()
+    .refine((val) => !val || /^\d+$/.test(val), {
+      message: "Total students must contain only numbers."
+    }),
+  batchesPassedOut: z.string()
+    .optional()
+    .refine((val) => !val || /^\d+$/.test(val), {
+      message: "Number of batches must contain only numbers."
+    }),
+  passPercentage: z.string()
+    .optional()
+    .refine((val) => !val || /^\d+$/.test(val), {
+      message: "The Pass % field must contain only numbers."
+    }),
   infrastructureDetails: z.string().optional(),
 }).refine((data) => data.accountNumber === data.confirmAccountNumber, {
   message: "Account numbers don't match",
@@ -116,7 +148,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
 
   const form = useForm<CollegeFormData>({
     resolver: zodResolver(collegeFormSchema),
-    mode: "onBlur", // Validate on blur for better UX
+    mode: "onSubmit", // Validate on submit to ensure all validations run
     defaultValues: initialData || {
       collegeName: "",
       establishedYear: "",
@@ -163,37 +195,77 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
 
   // On submit, validate all required fields
   const onSubmit = async (data: CollegeFormData) => {
+    console.log("=== FORM SUBMISSION STARTED ===");
+    console.log("Form submission started");
+    console.log("Form data:", data);
+    console.log("Cheque file:", chequeFile);
+    console.log("onProceedToPassword callback:", !!onProceedToPassword);
+    console.log("Current section:", currentSection);
+    console.log("Is submitting:", isSubmitting);
+    
     // Clear any previous field errors
     setFieldErrors({});
+    setChequeError("");
     
-    // Validate all required fields
-    const allRequired = [...sectionRequiredFields[0], ...sectionRequiredFields[1]];
-    const valid = await form.trigger(allRequired as any, { shouldFocus: true });
-    
-    // Always highlight missing fields when submit is clicked
-    allRequired.forEach(field => {
-      const value = form.getValues(field as keyof CollegeFormData);
-      if (!value || value.trim() === "") {
-        form.setError(field as keyof CollegeFormData, { type: 'manual', message: 'This field is required' });
-      }
-    });
-    
+    // Check if cheque file is uploaded
     if (!chequeFile) {
       setChequeError("Cancelled cheque file is required.");
-    }
-    
-    if (!valid || !chequeFile) {
-      // Show error message but don't prevent submission attempt
       toast({
-        title: "Validation Error",
-        description: "Please fix the highlighted fields before submitting.",
+        title: "Missing Required File",
+        description: "Please upload a cancelled cheque file.",
         variant: "destructive",
       });
       return;
     }
     
+    // Validate all required fields
+    const allRequired = [...sectionRequiredFields[0], ...sectionRequiredFields[1]];
+    console.log("Validating fields:", allRequired);
+    const valid = await form.trigger(allRequired as any, { shouldFocus: false });
+    console.log("Form validation result:", valid);
+    
+    // If validation fails, show errors and focus on first error
+    if (!valid) {
+      console.log("Validation failed");
+      console.log("Form errors:", form.formState.errors);
+      
+      // Find the first field with an error to focus on
+      let firstErrorField: string | null = null;
+      
+      // Check form validation errors first
+      for (const field of allRequired) {
+        const fieldError = form.formState.errors[field as keyof CollegeFormData];
+        if (fieldError) {
+          firstErrorField = field;
+          console.log("First error field:", field, fieldError);
+          break;
+        }
+      }
+      
+      // Focus on the first field with error
+      if (firstErrorField) {
+        setTimeout(() => {
+          const errorInput = document.querySelector(`input[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`) as HTMLElement;
+          if (errorInput) {
+            errorInput.focus();
+            errorInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+      
+      toast({
+        title: "Validation Error",
+        description: "Please fix the highlighted validation errors.",
+        variant: "destructive",
+      });
+      
+      return; // Don't proceed with submission if validation fails
+    }
+    
+    // All validation passed, proceed to password setup
     try {
       setIsSubmitting(true);
+      console.log("Starting submission process - all validation passed");
       
       // Add fieldName automatically to the submission data
       const submissionData = {
@@ -202,9 +274,9 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
       } as CollegeRegistrationData;
       
       console.log("College Registration Data:", submissionData);
-      console.log("Cheque file:", chequeFile.name);
+      console.log("Cheque file:", chequeFile?.name);
       
-      // Proceed to password setup instead of direct submission
+      // Proceed to password setup
       if (onProceedToPassword) {
         console.log("Calling onProceedToPassword with email:", data.email);
         onProceedToPassword(data.email, submissionData, { infraFiles, chequeFile });
@@ -269,6 +341,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
       });
     } finally {
       setIsSubmitting(false);
+      console.log("Form submission completed");
     }
   };
 
@@ -460,11 +533,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input 
                               placeholder="Enter college name" 
                               {...field} 
-                              className={`${(form.formState.errors.collegeName && form.formState.touchedFields.collegeName) || hasFieldError('collegeName') ? 'border-red-500' : ''}`}
+                              name="collegeName"
+                              className={`${(form.formState.errors.collegeName && (form.formState.touchedFields.collegeName || form.formState.isSubmitted)) || hasFieldError('collegeName') ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('collegeName'); setFieldErrors(prev => ({ ...prev, collegeName: undefined })); }}
                             />
                           </FormControl>
-                          {(form.formState.errors.collegeName?.message && form.getValues('collegeName') !== '') || getFieldError('collegeName') ? (
+                          {(form.formState.errors.collegeName?.message && (form.getValues('collegeName') !== '' || form.formState.isSubmitted)) || getFieldError('collegeName') ? (
                             <FormMessage>
                               {getFieldError('collegeName') || form.formState.errors.collegeName?.message}
                             </FormMessage>
@@ -485,11 +559,21 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input
                               placeholder="e.g., 1995"
                               {...field}
-                              className={`${(form.formState.errors.establishedYear && form.formState.touchedFields.establishedYear) || hasFieldError('establishedYear') ? 'border-red-500' : ''}`}
+                              name="establishedYear"
+                              onKeyDown={(e) => {
+                                // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                    // Allow: digits only
+                                    /[\d]/.test(e.key)) {
+                                  return;
+                                }
+                                e.preventDefault();
+                              }}
+                              className={`${(form.formState.errors.establishedYear && (form.formState.touchedFields.establishedYear || form.formState.isSubmitted)) || hasFieldError('establishedYear') ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('establishedYear'); setFieldErrors(prev => ({ ...prev, establishedYear: undefined })); }}
                             />
                           </FormControl>
-                          {(form.formState.errors.establishedYear?.message && form.getValues('establishedYear') !== '') || getFieldError('establishedYear') ? (
+                          {(form.formState.errors.establishedYear?.message && (form.getValues('establishedYear') !== '' || form.formState.isSubmitted)) || getFieldError('establishedYear') ? (
                             <FormMessage>
                               {getFieldError('establishedYear') || form.formState.errors.establishedYear?.message}
                             </FormMessage>
@@ -510,11 +594,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Textarea
                               placeholder="Complete address with city and state"
                               {...field}
-                              className={`${form.formState.errors.address && form.formState.touchedFields.address ? 'border-red-500' : ''}`}
+                              name="address"
+                              className={`${form.formState.errors.address && (form.formState.touchedFields.address || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('address'); }}
                             />
                           </FormControl>
-                          {form.formState.errors.address?.message && form.getValues('address') !== '' && (
+                          {form.formState.errors.address?.message && (form.getValues('address') !== '' || form.formState.isSubmitted) && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -534,11 +619,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               type="email"
                               placeholder="college@example.com"
                               {...field}
-                              className={`${form.formState.errors.email && form.formState.touchedFields.email ? 'border-red-500' : ''}`}
+                              name="email"
+                              className={`${form.formState.errors.email && (form.formState.touchedFields.email || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('email'); }}
                             />
                           </FormControl>
-                          {form.formState.errors.email?.message && form.getValues('email') !== '' && (
+                          {form.formState.errors.email?.message && (form.getValues('email') !== '' || form.formState.isSubmitted) && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -557,6 +643,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input 
                               placeholder="+91 XXXXXXXXXX" 
                               {...field}
+                              name="phone"
                               onKeyDown={(e) => {
                                 // Allow: backspace, delete, tab, escape, enter, and navigation keys
                                 if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
@@ -567,10 +654,10 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 e.preventDefault();
                               }}
                               onChange={e => { field.onChange(e); form.clearErrors('phone'); }}
-                              className={`${form.formState.errors.phone && form.getValues('phone') === '' && form.formState.touchedFields.phone ? 'border-red-500' : ''}`}
+                              className={`${form.formState.errors.phone && (form.getValues('phone') === '' || form.formState.isSubmitted) && (form.formState.touchedFields.phone || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                             />
                           </FormControl>
-                          {form.formState.errors.phone && form.getValues('phone') === '' && (
+                          {form.formState.errors.phone && (form.getValues('phone') === '' || form.formState.isSubmitted) && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -589,11 +676,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <Input
                               placeholder="Enter representative name"
                               {...field}
-                              className={`${form.formState.errors.representativeName && form.formState.touchedFields.representativeName ? 'border-red-500' : ''}`}
+                              name="representativeName"
+                              className={`${form.formState.errors.representativeName && (form.formState.touchedFields.representativeName || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('representativeName'); }}
                             />
                           </FormControl>
-                          {form.formState.errors.representativeName?.message && form.getValues('representativeName') !== '' && (
+                          {form.formState.errors.representativeName?.message && (form.getValues('representativeName') !== '' || form.formState.isSubmitted) && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -612,6 +700,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               <Input 
                                 placeholder="+91 XXXXXXXXXX" 
                                 {...field}
+                                name="representativePhone"
                                 onKeyDown={(e) => {
                                   // Allow: backspace, delete, tab, escape, enter, and navigation keys
                                   if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
@@ -622,10 +711,10 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                   e.preventDefault();
                                 }}
                                 onChange={e => { field.onChange(e); form.clearErrors('representativePhone'); }}
-                                className={`${form.formState.errors.representativePhone && form.getValues('representativePhone') === '' && form.formState.touchedFields.representativePhone ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.representativePhone && (form.getValues('representativePhone') === '' || form.formState.isSubmitted) && (form.formState.touchedFields.representativePhone || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               />
                             </FormControl>
-                            {form.formState.errors.representativePhone && form.getValues('representativePhone') === '' && (
+                            {form.formState.errors.representativePhone && (form.getValues('representativePhone') === '' || form.formState.isSubmitted) && (
                               <FormMessage />
                             )}
                           </FormItem>
@@ -645,11 +734,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               type="email"
                               placeholder="representative@example.com"
                               {...field}
-                              className={`${form.formState.errors.representativeEmail && form.formState.touchedFields.representativeEmail ? 'border-red-500' : ''}`}
+                              name="representativeEmail"
+                              className={`${form.formState.errors.representativeEmail && (form.formState.touchedFields.representativeEmail || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               onChange={e => { field.onChange(e); form.clearErrors('representativeEmail'); }}
                             />
                           </FormControl>
-                          {form.formState.errors.representativeEmail?.message && form.getValues('representativeEmail') !== '' && (
+                          {form.formState.errors.representativeEmail?.message && (form.getValues('representativeEmail') !== '' || form.formState.isSubmitted) && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -681,7 +771,20 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <FormItem>
                               <FormLabel>Number of Departments</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., 15" {...field} />
+                                <Input 
+                                  placeholder="e.g., 15" 
+                                  {...field} 
+                                  name="departments"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                        // Allow: digits only
+                                        /[\d]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -695,7 +798,20 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <FormItem>
                               <FormLabel>Total Number of Students</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., 2500" {...field} />
+                                <Input 
+                                  placeholder="e.g., 2500" 
+                                  {...field} 
+                                  name="totalStudents"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                        // Allow: digits only
+                                        /[\d]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -709,7 +825,20 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                             <FormItem>
                               <FormLabel>Number of Batches Passed Out</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., 25" {...field} />
+                                <Input 
+                                  placeholder="e.g., 25" 
+                                  {...field} 
+                                  name="batchesPassedOut"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                        // Allow: digits only
+                                        /[\d]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -726,6 +855,16 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input 
                                   placeholder="e.g., 95%" 
                                   {...field} 
+                                  name="passPercentage"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                        // Allow: digits only
+                                        /[\d]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
                                   className={`${hasFieldError('passPercentage') ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); setFieldErrors(prev => ({ ...prev, passPercentage: undefined })); }}
                                 />
@@ -759,11 +898,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               <Input
                                 placeholder="Enter coordinator name"
                                 {...field}
-                                className={`${form.formState.errors.coordinatorName && form.formState.touchedFields.coordinatorName ? 'border-red-500' : ''}`}
+                                name="coordinatorName"
+                                className={`${form.formState.errors.coordinatorName && (form.formState.touchedFields.coordinatorName || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorName'); }}
                               />
                             </FormControl>
-                            {form.formState.errors.coordinatorName?.message && form.getValues('coordinatorName') !== '' && (
+                            {form.formState.errors.coordinatorName?.message && (form.getValues('coordinatorName') !== '' || form.formState.isSubmitted) && (
                               <FormMessage />
                             )}
                           </FormItem>
@@ -782,11 +922,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               <Input
                                 placeholder="e.g., Professor, Dean"
                                 {...field}
-                                className={`${form.formState.errors.coordinatorDesignation && form.formState.touchedFields.coordinatorDesignation ? 'border-red-500' : ''}`}
+                                name="coordinatorDesignation"
+                                className={`${form.formState.errors.coordinatorDesignation && (form.formState.touchedFields.coordinatorDesignation || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorDesignation'); }}
                               />
                             </FormControl>
-                            {form.formState.errors.coordinatorDesignation?.message && form.getValues('coordinatorDesignation') !== '' && (
+                            {form.formState.errors.coordinatorDesignation?.message && (form.getValues('coordinatorDesignation') !== '' || form.formState.isSubmitted) && (
                               <FormMessage />
                             )}
                           </FormItem>
@@ -805,6 +946,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               <Input 
                                 placeholder="+91 XXXXXXXXXX" 
                                 {...field}
+                                name="coordinatorPhone"
                                 onKeyDown={(e) => {
                                   // Allow: backspace, delete, tab, escape, enter, and navigation keys
                                   if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
@@ -815,10 +957,10 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                   e.preventDefault();
                                 }}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorPhone'); }}
-                                className={`${form.formState.errors.coordinatorPhone && form.getValues('coordinatorPhone') === '' && form.formState.touchedFields.coordinatorPhone ? 'border-red-500' : ''}`}
+                                className={`${form.formState.errors.coordinatorPhone && (form.getValues('coordinatorPhone') === '' || form.formState.isSubmitted) && (form.formState.touchedFields.coordinatorPhone || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               />
                             </FormControl>
-                            {form.formState.errors.coordinatorPhone && form.getValues('coordinatorPhone') === '' && form.formState.touchedFields.coordinatorPhone && (
+                            {form.formState.errors.coordinatorPhone && (form.getValues('coordinatorPhone') === '' || form.formState.isSubmitted) && (
                               <FormMessage />
                             )}
                           </FormItem>
@@ -838,11 +980,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 type="email"
                                 placeholder="coordinator@example.com"
                                 {...field}
-                                className={`${form.formState.errors.coordinatorEmail && form.formState.touchedFields.coordinatorEmail ? 'border-red-500' : ''}`}
+                                name="coordinatorEmail"
+                                className={`${form.formState.errors.coordinatorEmail && (form.formState.touchedFields.coordinatorEmail || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                                 onChange={e => { field.onChange(e); form.clearErrors('coordinatorEmail'); }}
                               />
                             </FormControl>
-                            {form.formState.errors.coordinatorEmail?.message && form.getValues('coordinatorEmail') !== '' && (
+                            {form.formState.errors.coordinatorEmail?.message && (form.getValues('coordinatorEmail') !== '' || form.formState.isSubmitted) && (
                               <FormMessage />
                             )}
                           </FormItem>
@@ -861,12 +1004,13 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                           <FormControl>
                             <Textarea 
                               placeholder="Describe the fee concession your college will provide to scholarship students" 
-                              className={`min-h-24 ${form.formState.errors.feeConcession && form.formState.touchedFields.feeConcession ? 'border-red-500' : ''}`}
+                              className={`min-h-24 ${form.formState.errors.feeConcession && (form.formState.touchedFields.feeConcession || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                               {...field} 
+                              name="feeConcession"
                               onChange={e => { field.onChange(e); form.clearErrors('feeConcession'); }}
                             />
                           </FormControl>
-                          {form.formState.errors.feeConcession?.message && form.getValues('feeConcession') !== '' && form.formState.touchedFields.feeConcession && (
+                          {form.formState.errors.feeConcession?.message && (form.getValues('feeConcession') !== '' || form.formState.isSubmitted) && (
                             <FormMessage />
                           )}
                         </FormItem>
@@ -884,6 +1028,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                               placeholder="Describe your labs, placement training facilities, library, hostels, etc." 
                               className="min-h-32"
                               {...field} 
+                              name="infrastructureDetails"
                             />
                           </FormControl>
                           <FormMessage />
@@ -907,11 +1052,12 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Enter bank name"
                                   {...field}
-                                  className={`${form.formState.errors.bankName && form.formState.touchedFields.bankName ? 'border-red-500' : ''}`}
+                                  name="bankName"
+                                  className={`${form.formState.errors.bankName && (form.formState.touchedFields.bankName || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('bankName'); }}
                                 />
                               </FormControl>
-                              {form.formState.errors.bankName?.message && form.getValues('bankName') !== '' && (
+                              {form.formState.errors.bankName?.message && (form.getValues('bankName') !== '' || form.formState.isSubmitted) && (
                                 <FormMessage />
                               )}
                             </FormItem>
@@ -930,11 +1076,21 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Enter account number"
                                   {...field}
-                                  className={`${(form.formState.errors.accountNumber && form.formState.touchedFields.accountNumber) || hasFieldError('accountNumber') ? 'border-red-500' : ''}`}
+                                  name="accountNumber"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                        // Allow: digits only
+                                        /[\d]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
+                                  className={`${(form.formState.errors.accountNumber && (form.formState.touchedFields.accountNumber || form.formState.isSubmitted)) || hasFieldError('accountNumber') ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('accountNumber'); setFieldErrors(prev => ({ ...prev, accountNumber: undefined })); }}
                                 />
                               </FormControl>
-                              {(form.formState.errors.accountNumber?.message && form.getValues('accountNumber') !== '') || getFieldError('accountNumber') ? (
+                              {(form.formState.errors.accountNumber?.message && (form.getValues('accountNumber') !== '' || form.formState.isSubmitted)) || getFieldError('accountNumber') ? (
                                 <FormMessage>
                                   {getFieldError('accountNumber') || form.formState.errors.accountNumber?.message}
                                 </FormMessage>
@@ -955,11 +1111,21 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="Re-enter account number"
                                   {...field}
-                                  className={`${form.formState.errors.confirmAccountNumber && form.formState.touchedFields.confirmAccountNumber ? 'border-red-500' : ''}`}
+                                  name="confirmAccountNumber"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode) ||
+                                        // Allow: digits only
+                                        /[\d]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
+                                  className={`${form.formState.errors.confirmAccountNumber && (form.formState.touchedFields.confirmAccountNumber || form.formState.isSubmitted) ? 'border-red-500' : ''}`}
                                   onChange={e => { field.onChange(e); form.clearErrors('confirmAccountNumber'); }}
                                 />
                               </FormControl>
-                              {form.formState.errors.confirmAccountNumber?.message && form.getValues('confirmAccountNumber') !== '' && (
+                              {form.formState.errors.confirmAccountNumber?.message && (form.getValues('confirmAccountNumber') !== '' || form.formState.isSubmitted) && (
                                 <FormMessage />
                               )}
                             </FormItem>
@@ -978,11 +1144,29 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                                 <Input
                                   placeholder="e.g., SBIN0001234"
                                   {...field}
-                                  className={`${(form.formState.errors.ifscCode && form.formState.touchedFields.ifscCode) || hasFieldError('ifscCode') ? 'border-red-500' : ''}`}
-                                  onChange={e => { field.onChange(e); form.clearErrors('ifscCode'); setFieldErrors(prev => ({ ...prev, ifscCode: undefined })); }}
+                                  name="ifscCode"
+                                  onKeyDown={(e) => {
+                                    // Allow: backspace, delete, tab, escape, enter, and navigation keys
+                                    if ([8, 9, 27, 13, 46, 37, 38, 39, 40].includes(e.keyCode)) {
+                                      return;
+                                    }
+                                    // Allow: letters and digits for IFSC code
+                                    if (/[A-Za-z0-9]/.test(e.key)) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                  }}
+                                  onChange={e => { 
+                                    // Convert to uppercase for IFSC format
+                                    const value = e.target.value.toUpperCase();
+                                    field.onChange(value); 
+                                    form.clearErrors('ifscCode'); 
+                                    setFieldErrors(prev => ({ ...prev, ifscCode: undefined })); 
+                                  }}
+                                  className={`${(form.formState.errors.ifscCode && (form.formState.touchedFields.ifscCode || form.formState.isSubmitted)) || hasFieldError('ifscCode') ? 'border-red-500' : ''}`}
                                 />
                               </FormControl>
-                              {(form.formState.errors.ifscCode?.message && form.getValues('ifscCode') !== '') || getFieldError('ifscCode') ? (
+                              {(form.formState.errors.ifscCode?.message && (form.getValues('ifscCode') !== '' || form.formState.isSubmitted)) || getFieldError('ifscCode') ? (
                                 <FormMessage>
                                   {getFieldError('ifscCode') || form.formState.errors.ifscCode?.message}
                                 </FormMessage>
@@ -1101,9 +1285,20 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                   
                   {currentSection === sections.length - 1 ? (
                     <Button 
-                      type="submit" 
+                      type="button" 
                       variant="hero" 
                       disabled={isSubmitting}
+                      onClick={async () => {
+                        console.log("Submit button clicked!");
+                        console.log("Current section:", currentSection);
+                        console.log("Total sections:", sections.length);
+                        console.log("Is submitting:", isSubmitting);
+                        
+                        // Manually trigger form submission
+                        const formData = form.getValues();
+                        console.log("Form values:", formData);
+                        await onSubmit(formData);
+                      }}
                     >
                       {isSubmitting ? (
                         <>

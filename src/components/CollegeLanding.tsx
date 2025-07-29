@@ -106,7 +106,10 @@ export const CollegeLanding = () => {
             collegeId: collegeId
           });
           // Store the full college data for the verification pending page
-          setFullCollegeData(collegeFormData);
+          setFullCollegeData({
+            ...collegeFormData,
+            files: uploadedFiles // Include the uploaded files
+          });
           setCurrentView("verification-pending");
           // Clear the form data after successful registration
           setCollegeFormData(null);
@@ -163,7 +166,11 @@ export const CollegeLanding = () => {
       ifscCode: "",
       fieldName: "college registration",
       submittedAt: verificationData.submittedAt,
-      collegeId: verificationData.collegeId
+      collegeId: verificationData.collegeId,
+      files: {
+        infraFiles: [],
+        chequeFile: null
+      }
     };
 
     return <VerificationPending 

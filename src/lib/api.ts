@@ -34,6 +34,12 @@ export interface CollegeRegistrationData {
   
   // Automatically included field
   fieldName: string;
+  
+  // Uploaded files
+  files?: {
+    infraFiles: File[];
+    chequeFile: File | null;
+  };
 }
 
 export interface CollegeRegistrationResponse {

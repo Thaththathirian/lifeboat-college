@@ -62,19 +62,24 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
         // For now, we'll use the passed data
         console.log('Fetching college data for ID:', collegeData.collegeId);
         
-        // Simulate API call to get uploaded documents
-        // In real implementation, this would be an API call
+        // Use actual uploaded files from the registration data
+        // In a real implementation, this would be fetched from the backend
         setTimeout(() => {
-          setUploadedDocuments({
-            infraFiles: [
-              new File([''], 'lab-photos.jpg', { type: 'image/jpeg' }),
-              new File([''], 'campus-view.jpg', { type: 'image/jpeg' }),
-              new File([''], 'library.jpg', { type: 'image/jpeg' })
-            ],
-            chequeFile: new File([''], 'cancelled-cheque.pdf', { type: 'application/pdf' })
-          });
+          // Check if we have actual files in the college data
+          if (collegeData.files) {
+            setUploadedDocuments({
+              infraFiles: collegeData.files.infraFiles || [],
+              chequeFile: collegeData.files.chequeFile
+            });
+          } else {
+            // Fallback to empty state if no files are available
+            setUploadedDocuments({
+              infraFiles: [],
+              chequeFile: null
+            });
+          }
           setIsLoading(false);
-        }, 1000);
+        }, 500); // Reduced timeout for better UX
       } catch (error) {
         console.error('Error fetching college data:', error);
         setIsLoading(false);
@@ -82,7 +87,7 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
     };
 
     fetchCollegeData();
-  }, [collegeData.collegeId]);
+  }, [collegeData.collegeId, collegeData.files]);
 
   const handleDownloadDocument = (file: File) => {
     // Create a download link for the file
@@ -500,7 +505,7 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-1 gap-4">
               <Button 
                 variant="outline" 
                 className="h-auto p-4 flex-col space-y-2"
@@ -510,18 +515,6 @@ export const VerificationPending = ({ collegeData, onRefresh }: VerificationPend
                 <div className="text-center">
                   <div className="font-semibold">Download Receipt</div>
                   <div className="text-xs text-muted-foreground">Save registration confirmation</div>
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="h-auto p-4 flex-col space-y-2"
-                onClick={onRefresh}
-              >
-                <RefreshCw className="h-6 w-6" />
-                <div className="text-center">
-                  <div className="font-semibold">Check Status</div>
-                  <div className="text-xs text-muted-foreground">Refresh verification status</div>
                 </div>
               </Button>
             </div>
