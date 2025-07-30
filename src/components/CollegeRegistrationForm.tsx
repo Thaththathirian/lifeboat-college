@@ -999,7 +999,7 @@ export const CollegeRegistrationForm = ({ onBack, onRegistrationSuccess, onProce
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>
-                            Fee Concession (Mandatory) <span className="text-red-500">*</span>
+                            Fee Concession <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <Textarea 
